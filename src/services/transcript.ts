@@ -1,7 +1,36 @@
 import type { TranscriptSegment, VideoTranscript } from '../types/youtube.js';
 
 const ANDROID_USER_AGENT = 'com.google.android.youtube/19.02.39 (Linux; U; Android 11) gzip';
-const WEB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+// Security: Request timeout to prevent hanging
+const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
+
+/**
+ * Fetch with timeout using AbortController
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 interface VideoInfo {
   title: string;
@@ -112,28 +141,31 @@ export class TranscriptService {
    * This bypasses restrictions on the web client
    */
   private async fetchInnertubePlayer(videoId: string): Promise<InnertubeResponse> {
-    const response = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': ANDROID_USER_AGENT,
-        'X-YouTube-Client-Name': '3',
-        'X-YouTube-Client-Version': '19.02.39',
-      },
-      body: JSON.stringify({
-        videoId,
-        context: {
-          client: {
-            clientName: 'ANDROID',
-            clientVersion: '19.02.39',
-            hl: 'en',
-            gl: 'US',
-          }
+    const response = await fetchWithTimeout(
+      'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': ANDROID_USER_AGENT,
+          'X-YouTube-Client-Name': '3',
+          'X-YouTube-Client-Version': '19.02.39',
         },
-        contentCheckOk: true,
-        racyCheckOk: true,
-      })
-    });
+        body: JSON.stringify({
+          videoId,
+          context: {
+            client: {
+              clientName: 'ANDROID',
+              clientVersion: '19.02.39',
+              hl: 'en',
+              gl: 'US',
+            }
+          },
+          contentCheckOk: true,
+          racyCheckOk: true,
+        })
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to fetch video data: ${response.status}`);
@@ -146,7 +178,7 @@ export class TranscriptService {
    * Fetch and parse transcript XML
    */
   private async fetchTranscriptXml(url: string): Promise<TranscriptSegment[]> {
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       headers: {
         'User-Agent': ANDROID_USER_AGENT,
       }
