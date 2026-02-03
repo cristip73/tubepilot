@@ -1,6 +1,6 @@
 {
   "name": "tubepilot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Your AI Co-Pilot for YouTube - MCP server for video transcripts, search, and analysis",
   "main": "dist/index.js",
   "bin": {

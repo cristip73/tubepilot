@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "tubepilot",
   "display_name": "TubePilot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Your AI Co-Pilot for YouTube - fetch video info, extract transcripts, analyze channels, compare videos, and discover trends without downloading.",
   "author": {
     "name": "ixex",
