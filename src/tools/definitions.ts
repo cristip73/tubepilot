@@ -3,6 +3,15 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 // Core tools - work WITHOUT API key
 export const CORE_TOOLS: Tool[] = [
   {
+    name: 'health_check',
+    description:
+      'Check TubePilot server health and status. Returns API key status, cache stats, and available features. Use this for debugging connectivity issues.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
     name: 'get_video_info',
     description:
       'Get basic information about a YouTube video: title, description, channel, duration, and keywords. Works without API key. Use this for documentaries, music videos, or any video where you need metadata.',
@@ -70,6 +79,185 @@ export const CORE_TOOLS: Tool[] = [
         timestamp: { type: 'string', description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"' },
       },
       required: ['videoId', 'timestamp'],
+    },
+  },
+  {
+    name: 'list_caption_languages',
+    description:
+      'List all available caption/subtitle languages for a video. Use this before fetching transcripts to know which languages are available.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'create_clip_url',
+    description:
+      'Generate a shareable YouTube URL that starts at a specific timestamp. Perfect for sharing specific moments in videos.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        startTime: { type: 'string', description: 'Start timestamp like "1:02" or "1:30:45" or seconds "62"' },
+        endTime: { type: 'string', description: 'Optional end timestamp for clip range' },
+      },
+      required: ['videoId', 'startTime'],
+    },
+  },
+  {
+    name: 'get_video_moment',
+    description:
+      'Get what\'s happening at a specific moment in a video. Returns BOTH the transcript text being spoken AND a visual storyboard frame. Use this when user asks "what happens at 1:05?" - you get text + image to analyze together.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        timestamp: { type: 'string', description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"' },
+      },
+      required: ['videoId', 'timestamp'],
+    },
+  },
+  {
+    name: 'find_moment_by_topic',
+    description:
+      'Find when a specific topic is discussed in a video. Searches transcript and returns timestamps with context. Use when user asks "when do they talk about X?" Returns multiple matches with surrounding text.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        topic: { type: 'string', description: 'Topic or phrase to search for' },
+        maxResults: { type: 'number', description: 'Max matches to return (1-20)', default: 5 },
+      },
+      required: ['videoId', 'topic'],
+    },
+  },
+  // === DEVELOPER TOOLS (no API key) ===
+  {
+    name: 'extract_code_snippets',
+    description:
+      'Extract code snippets, CLI commands, and programming content from a video transcript. Perfect for developer tutorials. Detects: npm/yarn/pip commands, git commands, code patterns, file paths, URLs. Returns timestamped code blocks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_tutorial_steps',
+    description:
+      'Extract step-by-step instructions from a tutorial video. Identifies numbered steps, "first/then/next" patterns, and instructional segments. Perfect for following along with coding tutorials.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'find_tech_stack',
+    description:
+      'Find technologies, frameworks, libraries, and tools mentioned in a video. Detects programming languages, frameworks (React, Vue, Django, etc.), databases, cloud services, and dev tools. Great for tech talks and tutorials.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'convert_to_notes',
+    description:
+      'Convert a video transcript into structured markdown notes. Extracts key points, code snippets, and creates a developer-friendly summary. Ideal for saving tutorial content as documentation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+        includeTimestamps: { type: 'boolean', description: 'Include timestamp links', default: true },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'find_github_links',
+    description:
+      'Extract GitHub repositories, gists, and code resource links mentioned in a video. Searches both transcript and video description. Returns clickable links to repos, code samples, and resources.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  // === CONTENT ANALYSIS TOOLS (no API key) ===
+  {
+    name: 'get_video_summary',
+    description:
+      'Generate a structured summary of a video with key points, timestamps, and main takeaways. Perfect for quickly understanding video content without watching. Returns bullet points and highlights.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+        style: {
+          type: 'string',
+          enum: ['brief', 'detailed', 'bullet-points'],
+          description: 'Summary style',
+          default: 'bullet-points',
+        },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'answer_from_video',
+    description:
+      'Search a video transcript to answer a specific question. Finds relevant segments and returns context needed to answer the question. Use this when user asks "does the video mention X?" or "what does the video say about Y?"',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        question: { type: 'string', description: 'The question to answer from the video content' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId', 'question'],
+    },
+  },
+  {
+    name: 'extract_links_mentions',
+    description:
+      'Extract all URLs, product mentions, brand names, and resources referenced in a video. Searches description and transcript for links, @mentions, product names, books, courses, and tools mentioned.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_video_outline',
+    description:
+      'Auto-detect topic structure and create an outline of a video. Identifies main sections, topic transitions, and creates a hierarchical structure with timestamps. Great for long videos and lectures.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId'],
     },
   },
 ];
@@ -276,6 +464,136 @@ export const API_TOOLS: Tool[] = [
           type: 'boolean',
           description: 'Include video descriptions',
           default: false,
+        },
+      },
+      required: ['playlistId'],
+    },
+  },
+  {
+    name: 'check_live_status',
+    description:
+      'Check if a video is live, upcoming, or a regular video. Get live stream details like viewer count and scheduled start time. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_shorts',
+    description:
+      'Get YouTube Shorts from a channel. Shorts are vertical videos under 60 seconds. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        channelId: { type: 'string', description: 'Channel ID, handle (@username), or URL' },
+        maxResults: { type: 'number', description: 'Max shorts to return (1-50)', default: 20 },
+      },
+      required: ['channelId'],
+    },
+  },
+  {
+    name: 'search_by_hashtag',
+    description:
+      'Search for videos with a specific hashtag. Great for finding content on trending topics. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        hashtag: { type: 'string', description: 'Hashtag to search (with or without #)' },
+        maxResults: { type: 'number', description: 'Max results (1-50)', default: 20 },
+      },
+      required: ['hashtag'],
+    },
+  },
+  {
+    name: 'compare_channels',
+    description:
+      'Compare statistics of multiple YouTube channels side by side. Great for competitive analysis. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        channelIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of channel IDs, handles, or URLs (2-5 channels)',
+        },
+      },
+      required: ['channelIds'],
+    },
+  },
+  {
+    name: 'analyze_comments_sentiment',
+    description:
+      'Analyze the sentiment of video comments. Returns positive, negative, and neutral comment breakdown with examples. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        maxComments: { type: 'number', description: 'Max comments to analyze (10-100)', default: 50 },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_comment_replies',
+    description:
+      'Get replies to a specific top-level comment. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        commentId: { type: 'string', description: 'The comment ID to get replies for' },
+        maxResults: { type: 'number', description: 'Max replies (1-100)', default: 20 },
+      },
+      required: ['commentId'],
+    },
+  },
+  {
+    name: 'get_video_stats_history',
+    description:
+      'Get current statistics for a video. Note: Historical data requires external tracking. Returns current views, likes, comments with engagement metrics. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_video_metadata_bulk',
+    description:
+      'Get metadata for multiple videos at once in a single efficient API call. Returns title, channel, views, likes, duration for each video. Perfect for batch analysis, playlist overviews, or comparing many videos. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of video IDs or URLs (up to 50 videos)',
+        },
+        includeStats: {
+          type: 'boolean',
+          description: 'Include view count, likes, comments',
+          default: true,
+        },
+      },
+      required: ['videoIds'],
+    },
+  },
+  {
+    name: 'get_playlist_summary',
+    description:
+      'Generate a comprehensive summary of a YouTube playlist. Includes total duration, video count, topic overview, and key videos. Perfect for course playlists, tutorial series, or understanding playlist content. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        playlistId: { type: 'string', description: 'Playlist ID or URL' },
+        includeTopics: {
+          type: 'boolean',
+          description: 'Extract topics from video titles',
+          default: true,
         },
       },
       required: ['playlistId'],
