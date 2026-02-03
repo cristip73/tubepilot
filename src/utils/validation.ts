@@ -1,13 +1,42 @@
 import { z } from 'zod';
 
-// Common validation schemas
-export const videoIdSchema = z.string().min(1).describe('YouTube video ID or URL');
-export const channelIdSchema = z.string().min(1).describe('YouTube channel ID, handle, or URL');
-export const playlistIdSchema = z.string().min(1).describe('YouTube playlist ID or URL');
+// Security constants
+const MAX_URL_LENGTH = 2048;
+const MAX_QUERY_LENGTH = 500;
+const MAX_LANGUAGE_CODE_LENGTH = 10;
+
+// Common validation schemas with security constraints
+export const videoIdSchema = z
+  .string()
+  .min(1)
+  .max(MAX_URL_LENGTH)
+  .describe('YouTube video ID or URL');
+
+export const channelIdSchema = z
+  .string()
+  .min(1)
+  .max(MAX_URL_LENGTH)
+  .describe('YouTube channel ID, handle, or URL');
+
+export const playlistIdSchema = z
+  .string()
+  .min(1)
+  .max(MAX_URL_LENGTH)
+  .describe('YouTube playlist ID or URL');
 
 export const searchOptionsSchema = z.object({
-  query: z.string().min(1).describe('Search query'),
-  maxResults: z.number().min(1).max(50).default(10).describe('Maximum results to return (1-50)'),
+  query: z
+    .string()
+    .min(1)
+    .max(MAX_QUERY_LENGTH)
+    .describe('Search query (max 500 chars)'),
+  maxResults: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(10)
+    .describe('Maximum results to return (1-50)'),
   order: z
     .enum(['date', 'rating', 'relevance', 'title', 'viewCount'])
     .default('relevance')
@@ -20,26 +49,70 @@ export const searchOptionsSchema = z.object({
     .enum(['any', 'short', 'medium', 'long'])
     .optional()
     .describe('Video duration filter (short: <4min, medium: 4-20min, long: >20min)'),
-  publishedAfter: z.string().optional().describe('Only include videos published after this date (ISO 8601)'),
-  regionCode: z.string().length(2).default('US').describe('Region code (ISO 3166-1 alpha-2)'),
+  publishedAfter: z
+    .string()
+    .max(30)
+    .regex(/^\d{4}-\d{2}-\d{2}/, 'Must be ISO 8601 date format')
+    .optional()
+    .describe('Only include videos published after this date (ISO 8601)'),
+  regionCode: z
+    .string()
+    .length(2)
+    .regex(/^[A-Z]{2}$/, 'Must be 2-letter country code')
+    .default('US')
+    .describe('Region code (ISO 3166-1 alpha-2)'),
 });
 
 export const transcriptOptionsSchema = z.object({
   videoId: videoIdSchema,
-  language: z.string().default('en').describe('Language code for transcript'),
-  withTimestamps: z.boolean().default(false).describe('Include timestamps in output'),
+  language: z
+    .string()
+    .min(2)
+    .max(MAX_LANGUAGE_CODE_LENGTH)
+    .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Must be valid language code (e.g., en, en-US)')
+    .default('en')
+    .describe('Language code for transcript'),
+  withTimestamps: z
+    .boolean()
+    .default(false)
+    .describe('Include timestamps in output'),
 });
 
 export const commentsOptionsSchema = z.object({
   videoId: videoIdSchema,
-  maxResults: z.number().min(1).max(100).default(20).describe('Maximum comments to fetch'),
-  order: z.enum(['time', 'relevance']).default('relevance').describe('Comment sort order'),
+  maxResults: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
+    .describe('Maximum comments to fetch'),
+  order: z
+    .enum(['time', 'relevance'])
+    .default('relevance')
+    .describe('Comment sort order'),
 });
 
 export const trendingOptionsSchema = z.object({
-  regionCode: z.string().length(2).default('US').describe('Region code'),
-  categoryId: z.string().optional().describe('Video category ID'),
-  maxResults: z.number().min(1).max(50).default(20).describe('Maximum results'),
+  regionCode: z
+    .string()
+    .length(2)
+    .regex(/^[A-Z]{2}$/, 'Must be 2-letter country code')
+    .default('US')
+    .describe('Region code'),
+  categoryId: z
+    .string()
+    .max(5)
+    .regex(/^\d+$/, 'Must be numeric category ID')
+    .optional()
+    .describe('Video category ID'),
+  maxResults: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(20)
+    .describe('Maximum results'),
 });
 
 /**
@@ -56,6 +129,15 @@ export const trendingOptionsSchema = z.object({
  * - Just the video ID itself (11 characters)
  */
 export function extractVideoId(input: string): string {
+  if (!input || typeof input !== 'string') {
+    throw new Error('Video ID or URL is required');
+  }
+
+  // Security: limit input length to prevent DoS
+  if (input.length > MAX_URL_LENGTH) {
+    throw new Error('Input too long');
+  }
+
   const cleaned = input.trim();
 
   if (!cleaned) {
@@ -115,6 +197,15 @@ export function extractVideoId(input: string): string {
  * - Just the playlist ID itself
  */
 export function extractPlaylistId(input: string): string {
+  if (!input || typeof input !== 'string') {
+    throw new Error('Playlist ID or URL is required');
+  }
+
+  // Security: limit input length
+  if (input.length > MAX_URL_LENGTH) {
+    throw new Error('Input too long');
+  }
+
   const cleaned = input.trim();
 
   if (!cleaned) {
@@ -150,6 +241,15 @@ export function extractPlaylistId(input: string): string {
  * - Just the channel ID or @handle
  */
 export function extractChannelId(input: string): string {
+  if (!input || typeof input !== 'string') {
+    throw new Error('Channel ID or URL is required');
+  }
+
+  // Security: limit input length
+  if (input.length > MAX_URL_LENGTH) {
+    throw new Error('Input too long');
+  }
+
   const cleaned = input.trim();
 
   if (!cleaned) {
