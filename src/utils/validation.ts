@@ -149,23 +149,37 @@ export function extractVideoId(input: string): string {
     return cleaned;
   }
 
+  // Check if it looks like a URL
+  const looksLikeUrl = cleaned.includes('://') || cleaned.startsWith('www.');
+
   try {
     const url = new URL(cleaned);
     const hostname = url.hostname.replace('www.', '');
 
-    // youtube.com/watch?v=VIDEO_ID
-    if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+    // All YouTube domains
+    const youtubeHosts = [
+      'youtube.com',
+      'm.youtube.com',
+      'music.youtube.com',
+      'gaming.youtube.com',
+      'youtube-nocookie.com',
+    ];
+
+    if (youtubeHosts.includes(hostname)) {
       // /watch?v=ID
       const vParam = url.searchParams.get('v');
       if (vParam) {
         return validateVideoIdFormat(vParam);
       }
 
-      // /embed/ID, /v/ID, /shorts/ID, /live/ID
-      const pathMatch = url.pathname.match(/^\/(embed|v|shorts|live)\/([a-zA-Z0-9_-]{11})/);
+      // /embed/ID, /v/ID, /shorts/ID, /live/ID, /e/ID
+      const pathMatch = url.pathname.match(/^\/(embed|v|shorts|live|e)\/([a-zA-Z0-9_-]{11})/);
       if (pathMatch) {
         return pathMatch[2];
       }
+
+      // Could not extract from YouTube URL
+      throw new Error(`Could not extract video ID from: ${cleaned}`);
     }
 
     // youtu.be/VIDEO_ID
@@ -176,14 +190,23 @@ export function extractVideoId(input: string): string {
       }
     }
 
-  } catch {
-    // Not a valid URL, might be just an ID with extra characters
+    // Non-YouTube URL - don't try to extract
+    throw new Error(`Could not extract video ID from: ${cleaned}`);
+
+  } catch (e) {
+    // If it's our error, rethrow
+    if (e instanceof Error && e.message.includes('Could not extract')) {
+      throw e;
+    }
+    // Not a valid URL - continue to fallback only if it doesn't look like a URL
   }
 
-  // Try to find an 11-character video ID anywhere in the string
-  const idMatch = cleaned.match(/[a-zA-Z0-9_-]{11}/);
-  if (idMatch) {
-    return idMatch[0];
+  // Only try fallback extraction if input doesn't look like a URL
+  if (!looksLikeUrl) {
+    const idMatch = cleaned.match(/[a-zA-Z0-9_-]{11}/);
+    if (idMatch) {
+      return idMatch[0];
+    }
   }
 
   throw new Error(`Could not extract video ID from: ${cleaned}`);
@@ -219,16 +242,37 @@ export function extractPlaylistId(input: string): string {
 
   try {
     const url = new URL(cleaned);
-    const listParam = url.searchParams.get('list');
-    if (listParam) {
-      return listParam;
+    const hostname = url.hostname.replace('www.', '');
+
+    // Only accept YouTube URLs
+    if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+      const listParam = url.searchParams.get('list');
+      if (listParam) {
+        return listParam;
+      }
     }
-  } catch {
-    // Not a valid URL
+
+    // Non-YouTube URL
+    throw new Error(`Could not extract playlist ID from: ${cleaned}`);
+  } catch (e) {
+    // If it's our error, rethrow
+    if (e instanceof Error && e.message.includes('Could not extract')) {
+      throw e;
+    }
+    // Not a valid URL - check if it looks like a valid playlist ID
   }
 
-  // Return as-is, let the API validate
-  return cleaned;
+  // Special playlist types: WL (Watch Later), LL (Liked), etc.
+  if (/^(WL|LL)$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  // Standard playlist IDs: PL, UU, FL, RD, OL followed by more chars
+  if (/^(PL|UU|LL|FL|RD|OL)[a-zA-Z0-9_-]{10,}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  throw new Error(`Could not extract playlist ID from: ${cleaned}`);
 }
 
 /**
@@ -277,13 +321,32 @@ export function extractChannelId(input: string): string {
       if ((pathParts[0] === 'c' || pathParts[0] === 'user') && pathParts[1]) {
         return pathParts[1];
       }
+
+      // YouTube URL but couldn't extract channel
+      throw new Error(`Could not extract channel ID from: ${cleaned}`);
     }
-  } catch {
-    // Not a valid URL
+
+    // Non-YouTube URL
+    throw new Error(`Could not extract channel ID from: ${cleaned}`);
+  } catch (e) {
+    // If it's our error, rethrow
+    if (e instanceof Error && e.message.includes('Could not extract')) {
+      throw e;
+    }
+    // Not a valid URL - check if it looks like a valid channel identifier
   }
 
-  // Return as-is (could be channel ID or @handle)
-  return cleaned;
+  // Channel ID (UC + 22 chars)
+  if (/^UC[a-zA-Z0-9_-]{22}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  // Handle (@username) - must start with @ or be alphanumeric
+  if (/^@?[a-zA-Z0-9_.-]{1,100}$/.test(cleaned)) {
+    return cleaned.startsWith('@') ? cleaned : cleaned;
+  }
+
+  throw new Error(`Could not extract channel ID from: ${cleaned}`);
 }
 
 /**
