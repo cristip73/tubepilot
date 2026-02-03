@@ -118,6 +118,65 @@ ${info.keywords.length > 0 ? `**Keywords:** ${info.keywords.slice(0, 15).join(',
     return { content: [{ type: 'text', text: `Found ${results.length} matches for "${query}":\n\n${formatted}` }] };
   }
 
+  if (name === 'get_video_frames') {
+    const videoId = extractVideoId(args?.videoId as string);
+    const count = Math.min(Math.max((args?.count as number) || 5, 1), 10);
+
+    const frames = await transcriptService.getVideoFrames(videoId, count);
+    const info = await transcriptService.getVideoInfo(videoId);
+
+    // Return image URLs that Claude can fetch and analyze
+    const frameList = frames
+      .map((f, i) => {
+        const mins = Math.floor(f.timestamp / 60);
+        const secs = Math.floor(f.timestamp % 60);
+        return `**Frame ${i + 1}** [${mins}:${secs.toString().padStart(2, '0')}]\n${f.imageUrl}`;
+      })
+      .join('\n\n');
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `**${info.title}** - ${count} frames extracted\n\nAnalyze these frames to understand the video content:\n\n${frameList}`,
+        },
+      ],
+    };
+  }
+
+  if (name === 'get_frame_at_time') {
+    const videoId = extractVideoId(args?.videoId as string);
+    const timestampInput = args?.timestamp as string;
+
+    // Parse timestamp (supports "1:02", "1:30:45", or "62")
+    let seconds = 0;
+    if (timestampInput.includes(':')) {
+      const parts = timestampInput.split(':').map(Number);
+      if (parts.length === 3) {
+        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length === 2) {
+        seconds = parts[0] * 60 + parts[1];
+      }
+    } else {
+      seconds = parseInt(timestampInput, 10);
+    }
+
+    const frame = await transcriptService.getFrameAtTimestamp(videoId, seconds);
+
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const timestamp = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `**${frame.videoTitle}** - Frame at ${timestamp}\n\nAnalyze this frame to see what's happening:\n\n${frame.imageUrl}`,
+        },
+      ],
+    };
+  }
+
   // === API TOOLS (require API key) ===
 
   if (!youtubeApi) {

@@ -40,6 +40,16 @@ interface VideoInfo {
   keywords: string[];
 }
 
+interface StoryboardSpec {
+  baseUrl: string;
+  width: number;
+  height: number;
+  count: number;
+  columns: number;
+  rows: number;
+  interval: number; // ms between frames
+}
+
 interface InnertubeResponse {
   videoDetails?: {
     videoId: string;
@@ -49,6 +59,9 @@ interface InnertubeResponse {
     channelId: string;
     shortDescription: string;
     author: string;
+    thumbnail?: {
+      thumbnails?: Array<{ url: string; width: number; height: number }>;
+    };
   };
   captions?: {
     playerCaptionsTracklistRenderer?: {
@@ -58,6 +71,11 @@ interface InnertubeResponse {
         name?: { simpleText?: string };
         kind?: string;
       }>;
+    };
+  };
+  storyboards?: {
+    playerStoryboardSpecRenderer?: {
+      spec?: string;
     };
   };
   playabilityStatus?: {
@@ -300,5 +318,138 @@ export class TranscriptService {
       return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Get video frame/thumbnail at a specific timestamp
+   * Returns image URL that Claude can analyze with vision
+   */
+  async getFrameAtTimestamp(
+    videoId: string,
+    timestampSeconds: number
+  ): Promise<{ imageUrl: string; timestamp: number; videoTitle: string }> {
+    const data = await this.fetchInnertubePlayer(videoId);
+
+    if (!data.videoDetails) {
+      throw new Error('Could not fetch video details');
+    }
+
+    const duration = parseInt(data.videoDetails.lengthSeconds || '0', 10);
+    if (timestampSeconds > duration) {
+      throw new Error(`Timestamp ${timestampSeconds}s exceeds video duration of ${duration}s`);
+    }
+
+    // Try to get storyboard frame
+    const storyboardSpec = data.storyboards?.playerStoryboardSpecRenderer?.spec;
+    if (storyboardSpec) {
+      const frameUrl = this.getStoryboardFrameUrl(storyboardSpec, timestampSeconds);
+      if (frameUrl) {
+        return {
+          imageUrl: frameUrl,
+          timestamp: timestampSeconds,
+          videoTitle: data.videoDetails.title,
+        };
+      }
+    }
+
+    // Fallback: Use YouTube's thumbnail (less precise but always available)
+    // This gives the video thumbnail, not a specific frame
+    const thumbnails = data.videoDetails.thumbnail?.thumbnails || [];
+    const bestThumb = thumbnails[thumbnails.length - 1] || { url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
+
+    return {
+      imageUrl: bestThumb.url,
+      timestamp: 0, // Thumbnail is not timestamp-specific
+      videoTitle: data.videoDetails.title,
+    };
+  }
+
+  /**
+   * Get multiple frames from a video at regular intervals
+   * Great for understanding video content without transcript
+   */
+  async getVideoFrames(
+    videoId: string,
+    count: number = 5
+  ): Promise<Array<{ imageUrl: string; timestamp: number }>> {
+    const data = await this.fetchInnertubePlayer(videoId);
+
+    if (!data.videoDetails) {
+      throw new Error('Could not fetch video details');
+    }
+
+    const duration = parseInt(data.videoDetails.lengthSeconds || '0', 10);
+    const interval = Math.floor(duration / (count + 1));
+    const frames: Array<{ imageUrl: string; timestamp: number }> = [];
+
+    const storyboardSpec = data.storyboards?.playerStoryboardSpecRenderer?.spec;
+
+    for (let i = 1; i <= count; i++) {
+      const timestamp = interval * i;
+
+      if (storyboardSpec) {
+        const frameUrl = this.getStoryboardFrameUrl(storyboardSpec, timestamp);
+        if (frameUrl) {
+          frames.push({ imageUrl: frameUrl, timestamp });
+          continue;
+        }
+      }
+
+      // Fallback to storyboard image URL pattern
+      frames.push({
+        imageUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        timestamp,
+      });
+    }
+
+    return frames;
+  }
+
+  /**
+   * Parse YouTube storyboard spec and get frame URL for timestamp
+   * Storyboard spec format: baseUrl|width|height|count|columns|rows|interval|...
+   */
+  private getStoryboardFrameUrl(spec: string, timestampSeconds: number): string | null {
+    try {
+      // YouTube storyboard spec is pipe-delimited with multiple levels
+      const parts = spec.split('|');
+      if (parts.length < 7) return null;
+
+      // Use the highest quality storyboard (usually the last one with good resolution)
+      // Format: baseUrl|width|height|count|columns|rows|interval|sigh|...
+      const baseUrl = parts[0];
+
+      // Find the best storyboard level (they're separated by #)
+      const levels = spec.split('#');
+      if (levels.length === 0) return null;
+
+      // Parse the last (highest quality) level
+      const lastLevel = levels[levels.length - 1];
+      const levelParts = lastLevel.split('|');
+
+      if (levelParts.length < 7) {
+        // Try simpler parsing
+        const width = parseInt(parts[1], 10);
+        const height = parseInt(parts[2], 10);
+        const count = parseInt(parts[3], 10);
+        const columns = parseInt(parts[4], 10);
+        const rows = parseInt(parts[5], 10);
+        const intervalMs = parseInt(parts[6], 10);
+
+        if (!intervalMs || intervalMs <= 0) return null;
+
+        const frameIndex = Math.floor((timestampSeconds * 1000) / intervalMs);
+        const sheetIndex = Math.floor(frameIndex / (columns * rows));
+
+        // Replace $M in URL with sheet index
+        let url = baseUrl.replace('$M', sheetIndex.toString());
+
+        return url;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
   }
 }

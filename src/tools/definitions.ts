@@ -46,6 +46,32 @@ export const CORE_TOOLS: Tool[] = [
       required: ['videoId', 'query'],
     },
   },
+  {
+    name: 'get_video_frames',
+    description:
+      'Get visual frames/screenshots from a video at regular intervals. Use this to understand video content visually, especially for videos without captions (gameplay, music, documentaries). Returns image URLs that Claude can analyze with vision.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        count: { type: 'number', description: 'Number of frames to extract (1-10)', default: 5 },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_frame_at_time',
+    description:
+      'Get a video frame/screenshot at a specific timestamp. Use this when user asks "what happens at 1:02?" Returns an image URL that Claude can analyze with vision.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        timestamp: { type: 'string', description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"' },
+      },
+      required: ['videoId', 'timestamp'],
+    },
+  },
 ];
 
 // API tools - require YouTube Data API key
