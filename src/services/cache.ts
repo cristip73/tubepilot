@@ -1,13 +1,19 @@
 import NodeCache from 'node-cache';
 
+// Memory safety: limit cache size to prevent unbounded growth
+const DEFAULT_MAX_KEYS = 1000;
+
 export class CacheService {
   private cache: NodeCache;
+  private maxKeys: number;
 
-  constructor(ttlSeconds: number = 300) {
+  constructor(ttlSeconds: number = 300, maxKeys: number = DEFAULT_MAX_KEYS) {
+    this.maxKeys = maxKeys;
     this.cache = new NodeCache({
       stdTTL: ttlSeconds,
       checkperiod: ttlSeconds * 0.2,
       useClones: false,
+      maxKeys: maxKeys, // Prevent memory bloat
     });
   }
 
@@ -53,5 +59,18 @@ export class CacheService {
    */
   static makeKey(...parts: (string | number | undefined)[]): string {
     return parts.filter((p) => p !== undefined).join(':');
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  getStats(): { keys: number; hits: number; misses: number; maxKeys: number } {
+    const stats = this.cache.getStats();
+    return {
+      keys: this.cache.keys().length,
+      hits: stats.hits,
+      misses: stats.misses,
+      maxKeys: this.maxKeys,
+    };
   }
 }
