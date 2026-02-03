@@ -190,6 +190,66 @@ const API_TOOLS: Tool[] = [
       required: ['videoId'],
     },
   },
+  {
+    name: 'get_video_chapters',
+    description: 'Extract chapters/timestamps from a video description. Returns structured chapter data with times and titles. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_categories',
+    description: 'Get list of YouTube video categories for a region. Useful for filtering trending videos. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        regionCode: { type: 'string', description: 'Region code (e.g., US, UK, JP)', default: 'US' },
+      },
+    },
+  },
+  {
+    name: 'compare_videos',
+    description: 'Compare stats of multiple videos side by side. Great for analyzing performance. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of video IDs or URLs (2-10 videos)',
+        },
+      },
+      required: ['videoIds'],
+    },
+  },
+  {
+    name: 'analyze_channel',
+    description: 'Get detailed channel analytics including posting frequency, average views, and content breakdown. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        channelId: { type: 'string', description: 'Channel ID, handle (@username), or URL' },
+        videoCount: { type: 'number', description: 'Number of recent videos to analyze (5-50)', default: 20 },
+      },
+      required: ['channelId'],
+    },
+  },
+  {
+    name: 'export_playlist',
+    description: 'Export a playlist to JSON format with all video details. Perfect for backup or analysis. (Requires API key)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        playlistId: { type: 'string', description: 'Playlist ID or URL' },
+        includeDescriptions: { type: 'boolean', description: 'Include video descriptions', default: false },
+      },
+      required: ['playlistId'],
+    },
+  },
 ];
 
 export async function createServer() {
@@ -440,6 +500,213 @@ To enable search, video details, and other features:
           const related = await youtubeApi.getRelatedVideos(videoId, maxResults);
 
           return { content: [{ type: 'text', text: `Related videos:\n\n${formatSearchResults(related)}` }] };
+        }
+
+        case 'get_video_chapters': {
+          const videoId = extractVideoId(args?.videoId as string);
+          const video = await youtubeApi.getVideoDetails(videoId);
+
+          if (!video) {
+            return { content: [{ type: 'text', text: `Video not found: ${videoId}` }], isError: true };
+          }
+
+          // Parse chapters from description (format: 0:00 Title or 00:00:00 Title)
+          const chapterRegex = /(?:^|\n)\s*(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?=\n|$)/g;
+          const chapters: { time: string; seconds: number; title: string }[] = [];
+          let match;
+
+          while ((match = chapterRegex.exec(video.description)) !== null) {
+            const timeStr = match[1];
+            const title = match[2].trim();
+            const parts = timeStr.split(':').map(Number);
+            let seconds = 0;
+            if (parts.length === 3) {
+              seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+            } else {
+              seconds = parts[0] * 60 + parts[1];
+            }
+            chapters.push({ time: timeStr, seconds, title });
+          }
+
+          if (chapters.length === 0) {
+            return { content: [{ type: 'text', text: `No chapters found in "${video.title}". The video may not have chapter markers in its description.` }] };
+          }
+
+          const formatted = chapters
+            .map((c, i) => `${i + 1}. [${c.time}] ${c.title}`)
+            .join('\n');
+
+          return {
+            content: [{
+              type: 'text',
+              text: `**${video.title}**\n\n${chapters.length} chapters found:\n\n${formatted}`,
+            }],
+          };
+        }
+
+        case 'get_categories': {
+          const regionCode = (args?.regionCode as string) || 'US';
+          const categories = await youtubeApi.getVideoCategories(regionCode);
+
+          const formatted = categories
+            .map((c) => `• **${c.id}**: ${c.title}`)
+            .join('\n');
+
+          return {
+            content: [{
+              type: 'text',
+              text: `YouTube categories for ${regionCode}:\n\n${formatted}\n\nUse the ID with get_trending to filter by category.`,
+            }],
+          };
+        }
+
+        case 'compare_videos': {
+          const videoIds = (args?.videoIds as string[]) || [];
+          if (videoIds.length < 2 || videoIds.length > 10) {
+            return { content: [{ type: 'text', text: 'Please provide 2-10 video IDs to compare.' }], isError: true };
+          }
+
+          const cleanIds = videoIds.map((id) => extractVideoId(id));
+          const videos = await youtubeApi.getMultipleVideoDetails(cleanIds);
+
+          if (videos.length === 0) {
+            return { content: [{ type: 'text', text: 'No videos found.' }], isError: true };
+          }
+
+          // Calculate stats
+          const totalViews = videos.reduce((sum, v) => sum + v.viewCount, 0);
+          const avgViews = Math.round(totalViews / videos.length);
+
+          const comparison = videos
+            .sort((a, b) => b.viewCount - a.viewCount)
+            .map((v, i) => {
+              const engagementRate = v.viewCount > 0 ? ((v.likeCount / v.viewCount) * 100).toFixed(2) : '0.00';
+              return `**${i + 1}. ${v.title}**
+   Views: ${formatNumber(v.viewCount)} | Likes: ${formatNumber(v.likeCount)} | Comments: ${formatNumber(v.commentCount)}
+   Engagement: ${engagementRate}% | Channel: ${v.channelTitle}
+   https://youtube.com/watch?v=${v.id}`;
+            })
+            .join('\n\n');
+
+          return {
+            content: [{
+              type: 'text',
+              text: `**Video Comparison** (${videos.length} videos)\n\nTotal views: ${formatNumber(totalViews)} | Avg views: ${formatNumber(avgViews)}\n\n${comparison}`,
+            }],
+          };
+        }
+
+        case 'analyze_channel': {
+          const channelInput = args?.channelId as string;
+          const videoCount = Math.min(Math.max((args?.videoCount as number) || 20, 5), 50);
+
+          let channel;
+          if (channelInput.startsWith('@')) {
+            channel = await youtubeApi.getChannelByUsername(channelInput);
+          } else {
+            const channelId = extractChannelId(channelInput);
+            channel = await youtubeApi.getChannelDetails(channelId);
+          }
+
+          if (!channel) {
+            return { content: [{ type: 'text', text: `Channel not found: ${channelInput}` }], isError: true };
+          }
+
+          // Get recent videos
+          const recentVideos = await youtubeApi.getChannelVideos(channel.id, { maxResults: videoCount, order: 'date' });
+          const videoIds = recentVideos.map((v) => v.id);
+          const videoDetails = videoIds.length > 0 ? await youtubeApi.getMultipleVideoDetails(videoIds) : [];
+
+          // Calculate analytics
+          const totalViews = videoDetails.reduce((sum, v) => sum + v.viewCount, 0);
+          const totalLikes = videoDetails.reduce((sum, v) => sum + v.likeCount, 0);
+          const avgViews = videoDetails.length > 0 ? Math.round(totalViews / videoDetails.length) : 0;
+          const avgLikes = videoDetails.length > 0 ? Math.round(totalLikes / videoDetails.length) : 0;
+          const engagementRate = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(2) : '0.00';
+
+          // Calculate posting frequency
+          let postingFrequency = 'Unknown';
+          if (videoDetails.length >= 2) {
+            const dates = videoDetails.map((v) => new Date(v.publishedAt).getTime()).sort((a, b) => b - a);
+            const daysBetween = (dates[0] - dates[dates.length - 1]) / (1000 * 60 * 60 * 24);
+            const avgDaysBetweenPosts = daysBetween / (videoDetails.length - 1);
+            if (avgDaysBetweenPosts < 1) postingFrequency = 'Multiple times daily';
+            else if (avgDaysBetweenPosts < 2) postingFrequency = 'Daily';
+            else if (avgDaysBetweenPosts < 4) postingFrequency = 'Every 2-3 days';
+            else if (avgDaysBetweenPosts < 8) postingFrequency = 'Weekly';
+            else if (avgDaysBetweenPosts < 15) postingFrequency = 'Bi-weekly';
+            else if (avgDaysBetweenPosts < 35) postingFrequency = 'Monthly';
+            else postingFrequency = 'Infrequent';
+          }
+
+          // Find top video
+          const topVideo = videoDetails.length > 0
+            ? videoDetails.reduce((max, v) => v.viewCount > max.viewCount ? v : max, videoDetails[0])
+            : null;
+
+          return {
+            content: [{
+              type: 'text',
+              text: `**Channel Analysis: ${channel.title}**
+${channel.customUrl ? `@${channel.customUrl}` : ''}
+
+**Overview**
+• Subscribers: ${formatNumber(channel.subscriberCount)}
+• Total videos: ${formatNumber(channel.videoCount)}
+• Total channel views: ${formatNumber(channel.viewCount)}
+• Country: ${channel.country || 'Not specified'}
+
+**Recent Performance** (last ${videoDetails.length} videos)
+• Average views: ${formatNumber(avgViews)}
+• Average likes: ${formatNumber(avgLikes)}
+• Engagement rate: ${engagementRate}%
+• Posting frequency: ${postingFrequency}
+
+${topVideo ? `**Top Performing Video**
+"${topVideo.title}"
+${formatNumber(topVideo.viewCount)} views | ${formatNumber(topVideo.likeCount)} likes
+https://youtube.com/watch?v=${topVideo.id}` : ''}`,
+            }],
+          };
+        }
+
+        case 'export_playlist': {
+          const playlistId = extractPlaylistId(args?.playlistId as string);
+          const includeDescriptions = (args?.includeDescriptions as boolean) || false;
+
+          const [playlist, items] = await Promise.all([
+            youtubeApi.getPlaylistDetails(playlistId),
+            youtubeApi.getPlaylistItems(playlistId, 50),
+          ]);
+
+          if (!playlist) {
+            return { content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }], isError: true };
+          }
+
+          const exportData = {
+            playlist: {
+              id: playlist.id,
+              title: playlist.title,
+              description: playlist.description,
+              channelTitle: playlist.channelTitle,
+              itemCount: playlist.itemCount,
+              exportedAt: new Date().toISOString(),
+            },
+            videos: items.map((item) => ({
+              position: item.position,
+              videoId: item.videoId,
+              title: item.title,
+              url: `https://youtube.com/watch?v=${item.videoId}`,
+              ...(includeDescriptions && { description: item.description }),
+            })),
+          };
+
+          return {
+            content: [{
+              type: 'text',
+              text: `**Exported: ${playlist.title}**\n${items.length} videos\n\n\`\`\`json\n${JSON.stringify(exportData, null, 2)}\n\`\`\``,
+            }],
+          };
         }
 
         default:
