@@ -86,6 +86,31 @@ interface InnertubeResponse {
 
 export class TranscriptService {
   /**
+   * List available caption languages for a video
+   */
+  async listCaptionLanguages(videoId: string): Promise<Array<{ code: string; name: string; isAuto: boolean }>> {
+    const data = await this.fetchInnertubePlayer(videoId);
+
+    if (data.playabilityStatus?.status !== 'OK') {
+      throw new Error(
+        `Video not available: ${data.playabilityStatus?.reason || data.playabilityStatus?.status || 'Unknown error'}`
+      );
+    }
+
+    const captions = data.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+    if (!captions || captions.length === 0) {
+      return [];
+    }
+
+    return captions.map((track) => ({
+      code: track.languageCode,
+      name: track.name?.simpleText || track.languageCode,
+      isAuto: track.kind === 'asr',
+    }));
+  }
+
+  /**
    * Get video info using Android client (more reliable)
    */
   async getVideoInfo(videoId: string): Promise<VideoInfo> {
@@ -304,6 +329,246 @@ export class TranscriptService {
     }
 
     return results;
+  }
+
+  /**
+   * Get transcript text at a specific timestamp with surrounding context
+   * Returns the text being spoken at that moment + context before/after
+   */
+  async getTranscriptAtTimestamp(
+    videoId: string,
+    timestampSeconds: number,
+    contextSeconds: number = 10
+  ): Promise<{
+    currentText: string;
+    contextBefore: string;
+    contextAfter: string;
+    exactSegment: TranscriptSegment | null;
+    nearbySegments: TranscriptSegment[];
+  }> {
+    const transcript = await this.getTranscript(videoId);
+    const segments = transcript.segments;
+
+    // Find the segment containing this timestamp
+    let exactSegment: TranscriptSegment | null = null;
+    let exactIndex = -1;
+
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      if (timestampSeconds >= seg.start && timestampSeconds < seg.start + seg.duration) {
+        exactSegment = seg;
+        exactIndex = i;
+        break;
+      }
+    }
+
+    // If no exact match, find nearest
+    if (!exactSegment && segments.length > 0) {
+      let minDist = Infinity;
+      for (let i = 0; i < segments.length; i++) {
+        const dist = Math.abs(segments[i].start - timestampSeconds);
+        if (dist < minDist) {
+          minDist = dist;
+          exactSegment = segments[i];
+          exactIndex = i;
+        }
+      }
+    }
+
+    // Get context segments
+    const nearbySegments: TranscriptSegment[] = [];
+    const contextStart = timestampSeconds - contextSeconds;
+    const contextEnd = timestampSeconds + contextSeconds;
+
+    for (const seg of segments) {
+      if (seg.start >= contextStart && seg.start <= contextEnd) {
+        nearbySegments.push(seg);
+      }
+    }
+
+    // Build context strings
+    const beforeSegments = segments.filter(
+      (s) => s.start < timestampSeconds && s.start >= contextStart
+    );
+    const afterSegments = segments.filter(
+      (s) => s.start > timestampSeconds && s.start <= contextEnd
+    );
+
+    return {
+      currentText: exactSegment?.text || '',
+      contextBefore: beforeSegments.map((s) => s.text).join(' '),
+      contextAfter: afterSegments.map((s) => s.text).join(' '),
+      exactSegment,
+      nearbySegments,
+    };
+  }
+
+  /**
+   * Get storyboard frame with precise position info
+   * Returns sprite sheet URL and exact frame position within it
+   */
+  async getStoryboardFrame(
+    videoId: string,
+    timestampSeconds: number
+  ): Promise<{
+    spriteUrl: string;
+    frameIndex: number;
+    row: number;
+    col: number;
+    columns: number;
+    rows: number;
+    frameWidth: number;
+    frameHeight: number;
+    isApproximate: boolean;
+  } | null> {
+    const data = await this.fetchInnertubePlayer(videoId);
+
+    if (!data.videoDetails) {
+      return null;
+    }
+
+    const storyboardSpec = data.storyboards?.playerStoryboardSpecRenderer?.spec;
+    if (!storyboardSpec) {
+      return null;
+    }
+
+    try {
+      // Parse storyboard spec - format varies but typically:
+      // baseUrl|width|height|count|columns|rows|interval|...#level2|...
+      const levels = storyboardSpec.split('#');
+
+      // Use the highest quality level (last one with good resolution)
+      // Try to find a level with reasonable resolution
+      let bestLevel = levels[0];
+      for (const level of levels) {
+        const parts = level.split('|');
+        if (parts.length >= 7) {
+          const width = parseInt(parts[1], 10);
+          if (width >= 80) { // Reasonable quality
+            bestLevel = level;
+          }
+        }
+      }
+
+      const parts = bestLevel.split('|');
+      if (parts.length < 7) return null;
+
+      const baseUrl = parts[0];
+      const frameWidth = parseInt(parts[1], 10) || 120;
+      const frameHeight = parseInt(parts[2], 10) || 68;
+      const frameCount = parseInt(parts[3], 10) || 100;
+      const columns = parseInt(parts[4], 10) || 10;
+      const rows = parseInt(parts[5], 10) || 10;
+      const intervalMs = parseInt(parts[6], 10) || 2000;
+
+      if (intervalMs <= 0) return null;
+
+      // Calculate which frame
+      const frameIndex = Math.floor((timestampSeconds * 1000) / intervalMs);
+      const framesPerSheet = columns * rows;
+      const sheetIndex = Math.floor(frameIndex / framesPerSheet);
+      const frameInSheet = frameIndex % framesPerSheet;
+      const row = Math.floor(frameInSheet / columns);
+      const col = frameInSheet % columns;
+
+      // Build sprite URL
+      let spriteUrl = baseUrl.replace('$M', sheetIndex.toString());
+      // Some URLs need $N replaced too
+      spriteUrl = spriteUrl.replace('$N', 'default');
+
+      return {
+        spriteUrl,
+        frameIndex,
+        row,
+        col,
+        columns,
+        rows,
+        frameWidth,
+        frameHeight,
+        isApproximate: false,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get complete moment analysis - transcript + visual frame
+   * This is the power tool for "what happens at X:XX?"
+   */
+  async getVideoMoment(
+    videoId: string,
+    timestampSeconds: number
+  ): Promise<{
+    videoTitle: string;
+    timestamp: number;
+    formattedTime: string;
+    transcript: {
+      currentText: string;
+      contextBefore: string;
+      contextAfter: string;
+    };
+    visual: {
+      spriteUrl: string | null;
+      thumbnailUrl: string;
+      framePosition: { row: number; col: number; columns: number; rows: number } | null;
+    };
+    hasTranscript: boolean;
+    hasStoryboard: boolean;
+  }> {
+    const data = await this.fetchInnertubePlayer(videoId);
+
+    if (!data.videoDetails) {
+      throw new Error('Could not fetch video details');
+    }
+
+    const duration = parseInt(data.videoDetails.lengthSeconds || '0', 10);
+    if (timestampSeconds > duration) {
+      throw new Error(`Timestamp ${timestampSeconds}s exceeds video duration of ${duration}s`);
+    }
+
+    // Get transcript at timestamp
+    let transcriptData = { currentText: '', contextBefore: '', contextAfter: '' };
+    let hasTranscript = false;
+    try {
+      const result = await this.getTranscriptAtTimestamp(videoId, timestampSeconds, 15);
+      transcriptData = {
+        currentText: result.currentText,
+        contextBefore: result.contextBefore,
+        contextAfter: result.contextAfter,
+      };
+      hasTranscript = result.currentText.length > 0;
+    } catch {
+      // No transcript available
+    }
+
+    // Get storyboard frame
+    const storyboard = await this.getStoryboardFrame(videoId, timestampSeconds);
+    const hasStoryboard = storyboard !== null;
+
+    // Fallback thumbnail
+    const thumbnails = data.videoDetails.thumbnail?.thumbnails || [];
+    const bestThumb = thumbnails[thumbnails.length - 1]?.url ||
+      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+    return {
+      videoTitle: data.videoDetails.title,
+      timestamp: timestampSeconds,
+      formattedTime: this.formatTimestamp(timestampSeconds),
+      transcript: transcriptData,
+      visual: {
+        spriteUrl: storyboard?.spriteUrl || null,
+        thumbnailUrl: bestThumb,
+        framePosition: storyboard ? {
+          row: storyboard.row,
+          col: storyboard.col,
+          columns: storyboard.columns,
+          rows: storyboard.rows,
+        } : null,
+      },
+      hasTranscript,
+      hasStoryboard,
+    };
   }
 
   /**

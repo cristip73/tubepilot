@@ -321,4 +321,83 @@ export class YouTubeAPIService {
       title: category.snippet?.title || '',
     }));
   }
+
+  async getLiveStreamDetails(videoId: string): Promise<{
+    isLive: boolean;
+    isUpcoming: boolean;
+    concurrentViewers?: number;
+    scheduledStartTime?: string;
+    actualStartTime?: string;
+    actualEndTime?: string;
+  } | null> {
+    const response = await this.youtube.videos.list({
+      part: ['snippet', 'liveStreamingDetails'],
+      id: [videoId],
+    });
+
+    const video = response.data.items?.[0];
+    if (!video) return null;
+
+    const liveBroadcastContent = video.snippet?.liveBroadcastContent;
+    const liveDetails = video.liveStreamingDetails;
+
+    return {
+      isLive: liveBroadcastContent === 'live',
+      isUpcoming: liveBroadcastContent === 'upcoming',
+      concurrentViewers: liveDetails?.concurrentViewers
+        ? parseInt(liveDetails.concurrentViewers, 10)
+        : undefined,
+      scheduledStartTime: liveDetails?.scheduledStartTime || undefined,
+      actualStartTime: liveDetails?.actualStartTime || undefined,
+      actualEndTime: liveDetails?.actualEndTime || undefined,
+    };
+  }
+
+  async getCommentReplies(commentId: string, maxResults: number = 20): Promise<Comment[]> {
+    const response = await this.youtube.comments.list({
+      part: ['snippet'],
+      parentId: commentId,
+      maxResults,
+    });
+
+    return (response.data.items || []).map((item) => {
+      const snippet = item.snippet;
+      return {
+        id: item.id || '',
+        authorDisplayName: snippet?.authorDisplayName || '',
+        authorProfileImageUrl: snippet?.authorProfileImageUrl || '',
+        authorChannelId: snippet?.authorChannelId?.value || '',
+        textDisplay: snippet?.textDisplay || '',
+        textOriginal: snippet?.textOriginal || '',
+        likeCount: snippet?.likeCount || 0,
+        publishedAt: snippet?.publishedAt || '',
+        updatedAt: snippet?.updatedAt || '',
+        replyCount: 0,
+      };
+    });
+  }
+
+  async getMultipleChannelDetails(channelIds: string[]): Promise<ChannelDetails[]> {
+    const response = await this.youtube.channels.list({
+      part: ['snippet', 'statistics', 'brandingSettings'],
+      id: channelIds,
+    });
+
+    return (response.data.items || []).map((channel) => ({
+      id: channel.id || '',
+      title: channel.snippet?.title || '',
+      description: channel.snippet?.description || '',
+      customUrl: channel.snippet?.customUrl || undefined,
+      publishedAt: channel.snippet?.publishedAt || '',
+      thumbnails: {
+        default: channel.snippet?.thumbnails?.default?.url || undefined,
+        medium: channel.snippet?.thumbnails?.medium?.url || undefined,
+        high: channel.snippet?.thumbnails?.high?.url || undefined,
+      },
+      subscriberCount: parseInt(channel.statistics?.subscriberCount || '0', 10),
+      videoCount: parseInt(channel.statistics?.videoCount || '0', 10),
+      viewCount: parseInt(channel.statistics?.viewCount || '0', 10),
+      country: channel.snippet?.country || undefined,
+    }));
+  }
 }
