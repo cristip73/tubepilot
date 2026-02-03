@@ -23,34 +23,60 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 ## What You Can Do
 
-**Get info about any video (no API key):**
+### Video Analysis (No API Key)
+
+**Get info about any video:**
 ```
 "What is this video about? https://youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-**Summarize video content:**
+**Summarize or get an outline:**
 ```
-"Summarize this video for me"
+"Summarize this video for me" | "Give me an outline of this lecture"
 ```
 
 **Find specific moments:**
 ```
-"When do they talk about pricing in this video?"
+"When do they talk about pricing?" | "Find where they mention React"
 ```
 
 **Analyze what happens at a timestamp:**
 ```
-"What happens at 1:05 in this video?" → Gets transcript + visual frame together
+"What happens at 1:05?" → Gets transcript + visual frame together for full context
 ```
 
-**Analyze a channel (requires API key):**
+**Developer-focused analysis:**
 ```
-"Analyze @mkbhd's channel - posting frequency, avg views, top videos"
+"Extract all code snippets and commands from this tutorial"
+"What tech stack is used in this video?"
 ```
 
-**Compare videos (requires API key):**
+### Comparison & Analytics (Requires API Key)
+
+**Compare multiple videos:**
 ```
-"Compare these two videos and tell me which performed better"
+"Compare these 3 videos - which performed best and why?"
+→ Side-by-side: views, likes, engagement rate, comments
+```
+
+**Compare YouTube channels:**
+```
+"Compare @mkbhd vs @LinusTechTips - subscriber counts, posting frequency, engagement"
+```
+
+**Analyze a channel:**
+```
+"Analyze @veritasium - posting patterns, avg views, top videos"
+```
+
+**Playlist insights:**
+```
+"Summarize this course playlist - total duration, topics covered, key videos"
+```
+
+**Comment sentiment:**
+```
+"What's the sentiment in the comments? Are people happy with this video?"
 ```
 
 ## Tools
@@ -81,30 +107,37 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 | `extract_links_mentions` | Find URLs, @mentions, products, books referenced |
 | `get_video_outline` | Auto-detect topic structure and create outline |
 
-### Extended Tools (Requires API Key) - 20 Tools
+### Extended Tools (Requires API Key) - 22 Tools
 
 | Tool | Description |
 |------|-------------|
+| **Search & Discovery** | |
 | `search_videos` | Search YouTube for videos, channels, playlists |
-| `get_video_details` | Full stats: views, likes, comments, tags |
-| `get_video_chapters` | Extract chapter markers from description |
-| `get_video_comments` | Fetch top/recent comments |
-| `get_comment_replies` | Get replies to a specific comment |
-| `get_channel_info` | Channel subscribers, video count, description |
-| `get_channel_videos` | List videos from a channel |
-| `analyze_channel` | Deep analytics: posting frequency, avg views, top content |
-| `compare_channels` | Compare stats of 2-5 channels side by side |
-| `get_playlist` | Get playlist contents |
-| `export_playlist` | Export playlist to JSON format |
+| `get_related_videos` | Find similar videos |
+| `search_by_hashtag` | Find videos with a specific hashtag |
 | `get_trending` | Trending videos by region/category |
 | `get_categories` | List YouTube categories |
-| `get_related_videos` | Find similar videos |
-| `compare_videos` | Side-by-side stats comparison (2-10 videos) |
-| `check_live_status` | Check if video is live, upcoming, or regular |
-| `get_shorts` | Get YouTube Shorts from a channel |
-| `search_by_hashtag` | Find videos with a specific hashtag |
-| `analyze_comments_sentiment` | Analyze positive/negative comment sentiment |
+| **Video Analysis** | |
+| `get_video_details` | Full stats: views, likes, comments, tags |
+| `get_video_chapters` | Extract chapter markers from description |
 | `get_video_stats_history` | Get current stats with performance metrics |
+| `check_live_status` | Check if video is live, upcoming, or regular |
+| `get_video_metadata_bulk` | Get metadata for up to 50 videos in one call |
+| `compare_videos` | Side-by-side stats comparison (2-10 videos) |
+| **Channel Analysis** | |
+| `get_channel_info` | Channel subscribers, video count, description |
+| `get_channel_videos` | List videos from a channel |
+| `get_shorts` | Get YouTube Shorts from a channel |
+| `analyze_channel` | Deep analytics: posting frequency, avg views, top content |
+| `compare_channels` | Compare stats of 2-5 channels side by side |
+| **Playlists** | |
+| `get_playlist` | Get playlist contents |
+| `export_playlist` | Export playlist to JSON format |
+| `get_playlist_summary` | Full analysis: duration, topics, key videos |
+| **Comments** | |
+| `get_video_comments` | Fetch top/recent comments |
+| `get_comment_replies` | Get replies to a specific comment |
+| `analyze_comments_sentiment` | Analyze positive/negative comment sentiment |
 
 ## Limitations
 

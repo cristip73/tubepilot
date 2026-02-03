@@ -20,7 +20,7 @@ handlers.set('health_check', async (args, ctx) => {
     version: '1.0.0',
     apiKeyConfigured: hasApiKey,
     freeToolsAvailable: 19,
-    apiToolsAvailable: hasApiKey ? 20 : 0,
+    apiToolsAvailable: hasApiKey ? 22 : 0,
     cache: {
       entries: cacheStats.keys,
       maxEntries: cacheStats.maxKeys,
