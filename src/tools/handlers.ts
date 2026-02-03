@@ -12,6 +12,21 @@ import {
 } from '../utils/formatting.js';
 import { getApiKeyInstructions } from '../auth/index.js';
 
+// Max response size to avoid eating Claude's context
+const MAX_RESPONSE_LENGTH = 15000;
+const MAX_TRANSCRIPT_LENGTH = 30000;
+
+/**
+ * Truncate response to prevent context overflow
+ */
+function truncateResponse(text: string, maxLength: number = MAX_RESPONSE_LENGTH): string {
+  if (text.length <= maxLength) return text;
+  const truncated = text.substring(0, maxLength);
+  const lastNewline = truncated.lastIndexOf('\n');
+  const cutPoint = lastNewline > maxLength * 0.8 ? lastNewline : maxLength;
+  return truncated.substring(0, cutPoint) + '\n\n...[Response truncated for context efficiency]';
+}
+
 export interface ToolContext {
   youtubeApi: YouTubeAPIService | null;
   transcriptService: TranscriptService;
@@ -44,13 +59,13 @@ export async function handleToolCall(
       const transcript = await cache.getOrSet(cacheKey, () =>
         transcriptService.getTimestampedTranscript(videoId, language)
       );
-      return { content: [{ type: 'text', text: transcript }] };
+      return { content: [{ type: 'text', text: truncateResponse(transcript, MAX_TRANSCRIPT_LENGTH) }] };
     }
 
     const transcript = await cache.getOrSet(cacheKey, () =>
       transcriptService.getTranscript(videoId, language)
     );
-    return { content: [{ type: 'text', text: transcript.fullText }] };
+    return { content: [{ type: 'text', text: truncateResponse(transcript.fullText, MAX_TRANSCRIPT_LENGTH) }] };
   }
 
   if (name === 'search_in_transcript') {
@@ -388,8 +403,9 @@ https://youtube.com/watch?v=${topVideo.id}` : ''}`,
         })),
       };
 
+      const jsonOutput = JSON.stringify(exportData, null, 2);
       return {
-        content: [{ type: 'text', text: `**Exported: ${playlist.title}**\n${items.length} videos\n\n\`\`\`json\n${JSON.stringify(exportData, null, 2)}\n\`\`\`` }],
+        content: [{ type: 'text', text: truncateResponse(`**Exported: ${playlist.title}**\n${items.length} videos\n\n\`\`\`json\n${jsonOutput}\n\`\`\``) }],
       };
     }
 
