@@ -1,27 +1,39 @@
 {
   "name": "tubepilot",
   "version": "1.0.0",
-  "description": "Your AI Co-Pilot for YouTube - An MCP server that gives Claude the power to understand YouTube videos",
+  "description": "Your AI Co-Pilot for YouTube - MCP server for video transcripts, search, and analysis",
   "main": "dist/index.js",
+  "bin": {
+    "tubepilot": "dist/index.js"
+  },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "vitest",
-    "lint": "eslint src/",
-    "prepare": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "mcp",
+    "mcp-server",
     "claude",
     "youtube",
-    "ai",
+    "transcript",
     "video-analysis",
-    "transcripts"
+    "ai"
   ],
   "author": "",
   "license": "MIT",
+  "homepage": "https://github.com/your-username/tubepilot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/tubepilot.git"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "dotenv": "^16.4.1",

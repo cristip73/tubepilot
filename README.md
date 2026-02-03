@@ -1,137 +1,89 @@
-# TubePilot 🎬
+# TubePilot
 
-**Your AI Co-Pilot for YouTube** - An MCP server that gives AI assistants the power to understand YouTube videos.
+> Your AI Co-Pilot for YouTube
 
-TubePilot bridges the gap between AI and YouTube content. Since AI can't watch videos, TubePilot extracts transcripts, analyzes content, and provides rich video intelligence - making any YouTube video accessible to AI understanding.
-
-## Features
-
-### 🔍 Video Intelligence
-- **Search Videos** - Find videos with filters for date, duration, and relevance
-- **Video Details** - Get full metadata including stats, tags, and descriptions
-- **Transcripts** - Extract complete video transcripts with timestamps
-- **Search in Transcript** - Find specific moments within video content
-
-### 📺 Channel Analytics
-- **Channel Info** - Subscriber counts, video counts, descriptions
-- **Channel Videos** - List videos from any channel with sorting options
-
-### 📋 Playlist Management
-- **Get Playlist** - Retrieve playlist contents and metadata
-
-### 📈 Discovery & Trends
-- **Trending Videos** - See what's popular by region and category
-- **Related Videos** - Find similar content
-- **Video Categories** - Browse category listings
-
-### 💬 Community Insights
-- **Video Comments** - Analyze top comments with engagement metrics
+TubePilot bridges the gap between AI and YouTube content. Extract transcripts, analyze videos, discover trends, and make any YouTube video accessible to AI understanding.
 
 ## Installation
 
-```bash
-npm install
-npm run build
-```
+### Claude Desktop
 
-## Configuration
-
-Create a `.env` file based on `.env.example`:
-
-```env
-# Required: YouTube Data API v3 Key
-YOUTUBE_API_KEY=your_api_key_here
-
-# Optional: For playlist management features
-YOUTUBE_CLIENT_ID=your_client_id
-YOUTUBE_CLIENT_SECRET=your_client_secret
-```
-
-### Getting a YouTube API Key
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable **YouTube Data API v3**
-4. Create credentials → API Key
-5. Copy the key to your `.env` file
-
-## Usage with MCP
-
-Add to your MCP client configuration:
+Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "tubepilot": {
-      "command": "node",
-      "args": ["path/to/tubepilot/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "tubepilot"],
       "env": {
-        "YOUTUBE_API_KEY": "your_api_key"
+        "YOUTUBE_API_KEY": "your_api_key_here"
       }
     }
   }
 }
 ```
 
-## Available Tools
+### Getting a YouTube API Key
 
-| Tool | Description |
-|------|-------------|
-| `search_videos` | Search YouTube with filters |
-| `get_video_details` | Get full video metadata |
-| `get_transcript` | Extract video transcript |
-| `search_in_transcript` | Search within video content |
-| `get_channel_info` | Get channel details |
-| `get_channel_videos` | List channel's videos |
-| `get_playlist` | Get playlist contents |
-| `get_video_comments` | Fetch video comments |
-| `get_trending` | Get trending videos |
-| `get_related_videos` | Find related content |
-| `get_video_categories` | List video categories |
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project
+3. Enable **YouTube Data API v3**
+4. Create credentials → API Key
+5. Add the key to your configuration
 
-## Examples
+## Tools
 
-### Get Video Transcript
+### Video Intelligence
+- **search_videos** - Search YouTube with filters (date, duration, relevance)
+- **get_video_details** - Get full video metadata, stats, and tags
+- **get_transcript** - Extract complete video transcripts
+- **search_in_transcript** - Find specific moments in video content
+
+### Channels & Playlists
+- **get_channel_info** - Channel stats and description
+- **get_channel_videos** - List videos from a channel
+- **get_playlist** - Get playlist contents
+
+### Discovery
+- **get_trending** - Trending videos by region/category
+- **get_related_videos** - Find similar content
+- **get_video_comments** - Analyze video comments
+
+## Usage Examples
+
+**Understand a video without watching:**
 ```
-"Get the transcript of https://youtube.com/watch?v=dQw4w9WgXcQ"
+"Summarize this video: https://youtube.com/watch?v=..."
 ```
 
-### Search Videos
+**Research a topic:**
 ```
-"Search for TypeScript tutorials published this month"
-```
-
-### Analyze a Channel
-```
-"Get info about @mkbhd channel"
+"Find the top 5 TypeScript tutorial videos from this month"
 ```
 
-### Find Trending Content
+**Analyze a channel:**
 ```
-"Show me trending gaming videos in the US"
+"What kind of content does @mkbhd post?"
+```
+
+**Find specific content:**
+```
+"Search for where they mention 'machine learning' in this video transcript"
 ```
 
 ## Development
 
 ```bash
-# Run in development mode
-npm run dev
+# Install dependencies
+npm install
 
-# Build for production
+# Build
 npm run build
 
-# Run tests
-npm test
+# Run locally
+npm start
 ```
-
-## Tech Stack
-
-- TypeScript
-- MCP SDK
-- YouTube Data API v3
-- youtube-transcript
-- Zod (validation)
-- node-cache (caching)
 
 ## License
 
