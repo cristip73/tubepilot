@@ -1,0 +1,28 @@
+# Source files (dist is published instead)
+src/
+tests/
+
+# Config files
+tsconfig.json
+vitest.config.js
+.prettierrc
+.prettierignore
+.env.example
+
+# Git/GitHub
+.git/
+.github/
+.gitignore
+
+# Dev files
+*.log
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

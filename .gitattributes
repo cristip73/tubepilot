@@ -1,0 +1,5 @@
+package-lock.json linguist-generated=true
+*.js linguist-generated=true
+*.js.map linguist-generated=true
+*.d.ts linguist-generated=true
+*.d.ts.map linguist-generated=true
