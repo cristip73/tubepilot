@@ -2,11 +2,13 @@
 
 > Your AI Co-Pilot for YouTube
 
-TubePilot is an MCP server that lets Claude fetch and analyze YouTube data. Get video info, extract transcripts, analyze channels, compare videos, and more.
+TubePilot is an MCP server that lets AI assistants fetch and analyze YouTube data. Get video info, extract transcripts, analyze channels, compare videos, and more.
 
 ## Installation
 
-Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -18,6 +20,14 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
   }
 }
 ```
+
+### Other MCP Clients
+
+```bash
+npx tubepilot
+```
+
+Or add to any MCP-compatible client config with the command `npx` and args `["-y", "tubepilot"]`.
 
 **No API key required** for basic video info and transcripts!
 
@@ -81,7 +91,7 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 
 ## Tools
 
-### Free Tools (No API Key) - 19 Tools
+### Free Tools (No API Key) - 27 Tools
 
 | Tool | Description |
 |------|-------------|
@@ -106,6 +116,15 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 | `answer_from_video` | Q&A - find relevant segments to answer questions |
 | `extract_links_mentions` | Find URLs, @mentions, products, books referenced |
 | `get_video_outline` | Auto-detect topic structure and create outline |
+| **Enhanced/Combo Tools** | |
+| `deep_analyze_video` | **POWER TOOL**: Complete analysis (info + transcript + chapters + frame) |
+| `video_timeline` | Visual timeline with frames at intervals |
+| `compare_moments` | Compare same timestamp across 2-5 videos |
+| `merge_transcripts` | Combine transcripts from multiple videos |
+| `analyze_short` | Specialized YouTube Shorts analysis |
+| `detect_music` | Detect if video is a music video, parse artist/song |
+| `get_hd_thumbnail` | Get high-res thumbnail URLs (up to 1280x720) |
+| `get_video_chapters_free` | Extract chapters from description (no API) |
 
 ### Extended Tools (Requires API Key) - 22 Tools
 

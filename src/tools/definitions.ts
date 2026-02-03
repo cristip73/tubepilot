@@ -260,6 +260,122 @@ export const CORE_TOOLS: Tool[] = [
       required: ['videoId'],
     },
   },
+  // === ENHANCED/COMBO TOOLS (no API key) ===
+  {
+    name: 'merge_transcripts',
+    description:
+      'Merge transcripts from multiple videos into one document. Perfect for playlists, course series, or comparing similar content. Combines 2-10 videos with separators.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of video IDs or URLs (2-10 videos)',
+        },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+        includeSeparators: { type: 'boolean', description: 'Add video title separators', default: true },
+      },
+      required: ['videoIds'],
+    },
+  },
+  {
+    name: 'analyze_short',
+    description:
+      'Specialized analysis for YouTube Shorts (videos under 60 seconds). Extracts hook, CTA patterns, words-per-second, hashtags, and provides a visual frame. Perfect for Shorts creators.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube Short video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_hd_thumbnail',
+    description:
+      'Get high-resolution thumbnail URLs for a video. Returns maxres (1280x720), sd (640x480), hq (480x360), and other quality options. Better than storyboard frames.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        quality: {
+          type: 'string',
+          enum: ['maxres', 'sd', 'hq', 'mq', 'default'],
+          description: 'Thumbnail quality',
+          default: 'maxres',
+        },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'detect_music',
+    description:
+      'Detect if a video is a music video. Analyzes title patterns, keywords, channel name, and duration to determine if content is music. Parses artist and song name when possible.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'get_video_chapters_free',
+    description:
+      'Extract chapters from video description without API key. Parses timestamp markers (0:00, 1:30, etc.) and their titles. Free alternative to get_video_chapters.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'deep_analyze_video',
+    description:
+      'POWER TOOL: Complete video analysis combining info, transcript, chapters, links, and visual frame. Returns everything Claude needs to understand a video in one call. Best for thorough analysis.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        language: { type: 'string', description: 'Transcript language code', default: 'en' },
+      },
+      required: ['videoId'],
+    },
+  },
+  {
+    name: 'compare_moments',
+    description:
+      'Compare the same timestamp across multiple videos. See what different creators show/say at the same point. Returns transcript + visual frames for 2-5 videos side by side.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of video IDs or URLs (2-5 videos)',
+        },
+        timestamp: { type: 'string', description: 'Timestamp to compare (e.g., "1:30")', default: '0:30' },
+      },
+      required: ['videoIds'],
+    },
+  },
+  {
+    name: 'video_timeline',
+    description:
+      'Generate a visual timeline of a video with frames and transcript excerpts at regular intervals. Perfect for getting an overview of long videos. Returns multiple images + text.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+        intervals: { type: 'number', description: 'Number of timeline points (3-10)', default: 5 },
+      },
+      required: ['videoId'],
+    },
+  },
 ];
 
 // API tools - require YouTube Data API key

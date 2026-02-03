@@ -19,7 +19,7 @@ handlers.set('health_check', async (args, ctx) => {
     status: 'healthy',
     version: '1.0.0',
     apiKeyConfigured: hasApiKey,
-    freeToolsAvailable: 19,
+    freeToolsAvailable: 27,
     apiToolsAvailable: hasApiKey ? 22 : 0,
     cache: {
       entries: cacheStats.keys,

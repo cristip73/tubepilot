@@ -11,6 +11,7 @@ import { coreHandlers } from './core-handlers.js';
 import { developerHandlers } from './developer-handlers.js';
 import { contentHandlers } from './content-handlers.js';
 import { apiHandlers } from './api-handlers.js';
+import { enhancedHandlers } from './enhanced-handlers.js';
 import { getApiKeyInstructions } from '../../auth/index.js';
 
 // Register all handler modules
@@ -19,6 +20,7 @@ const handlerModules: HandlerModule[] = [
   developerHandlers,
   contentHandlers,
   apiHandlers,
+  enhancedHandlers,
 ];
 
 // Build unified handler map
