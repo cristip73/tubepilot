@@ -19,6 +19,7 @@ import {
   extractChannelId,
   extractPlaylistId,
 } from './utils/formatting.js';
+import { sanitizeErrorMessage, logError } from './utils/errors.js';
 
 // Core tools - work WITHOUT API key (transcript-based)
 const CORE_TOOLS: Tool[] = [
@@ -445,7 +446,11 @@ To enable search, video details, and other features:
           return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      // Log full error internally for debugging
+      logError(`Tool ${name}`, error);
+
+      // Return sanitized error to client
+      const message = sanitizeErrorMessage(error);
       return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };
     }
   });
