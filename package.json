@@ -25,11 +25,17 @@
   "keywords": [
     "mcp",
     "mcp-server",
+    "model-context-protocol",
     "claude",
+    "anthropic",
     "youtube",
+    "youtube-api",
     "transcript",
     "video-analysis",
-    "ai"
+    "video-transcript",
+    "ai",
+    "llm",
+    "ai-assistant"
   ],
   "author": "ixex",
   "license": "MIT",

@@ -162,11 +162,14 @@ Or add to any MCP-compatible client config with the command `npx` and args `["-y
 
 **TubePilot is a data reader, not a downloader or uploader:**
 
-- ❌ Cannot download videos or audio
-- ❌ Cannot upload, like, comment, or subscribe
-- ❌ Cannot access private videos or watch history
-- ❌ Cannot get transcripts for videos without captions
-- ❌ Cannot access monetization/revenue data
+| Cannot Do | Can Do |
+|-----------|--------|
+| ❌ Download full videos/audio files | ✅ Extract storyboard frames (screenshots) |
+| ❌ Upload, like, comment, subscribe | ✅ Read public comments and stats |
+| ❌ Access private videos | ✅ Access unlisted videos (with URL) |
+| ❌ Get transcripts without captions | ✅ List available caption languages first |
+| ❌ Access creator revenue data | ✅ Get public view/like/comment counts |
+| ❌ Bypass age restrictions | ✅ Get thumbnails at all quality levels |
 
 ## Optional: Enable All Features
 
@@ -201,6 +204,12 @@ npm run build    # Build for production
 npm test         # Run tests (113 tests)
 npm run format   # Format code
 ```
+
+## Documentation
+
+- [Tool Reference](docs/TOOLS.md) - Detailed documentation for all 49 tools
+- [Usage Examples](docs/EXAMPLES.md) - Real-world workflows and examples
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Contributing
 
