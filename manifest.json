@@ -1,0 +1,44 @@
+{
+  "manifest_version": "0.3",
+  "name": "tubepilot",
+  "display_name": "TubePilot",
+  "version": "1.0.0",
+  "description": "Your AI Co-Pilot for YouTube - fetch video info, extract transcripts, analyze channels, compare videos, and discover trends without downloading.",
+  "author": {
+    "name": "ixex",
+    "url": "https://github.com/ixex"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ixex/tubepilot"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"]
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32", "darwin", "linux"]
+  },
+  "user_config": {
+    "YOUTUBE_API_KEY": {
+      "title": "YouTube API Key",
+      "type": "string",
+      "description": "Optional YouTube Data API v3 key for search, stats, and analytics features",
+      "required": false
+    }
+  },
+  "keywords": [
+    "youtube",
+    "video",
+    "transcript",
+    "mcp",
+    "ai",
+    "claude",
+    "analysis"
+  ]
+}
