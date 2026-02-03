@@ -1,12 +1,7 @@
 import type { TranscriptSegment, VideoTranscript } from '../types/youtube.js';
 
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-interface CaptionTrack {
-  baseUrl: string;
-  languageCode: string;
-  name: string;
-}
+const ANDROID_USER_AGENT = 'com.google.android.youtube/19.02.39 (Linux; U; Android 11) gzip';
+const WEB_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 interface VideoInfo {
   title: string;
@@ -16,15 +11,44 @@ interface VideoInfo {
   keywords: string[];
 }
 
+interface InnertubeResponse {
+  videoDetails?: {
+    videoId: string;
+    title: string;
+    lengthSeconds: string;
+    keywords?: string[];
+    channelId: string;
+    shortDescription: string;
+    author: string;
+  };
+  captions?: {
+    playerCaptionsTracklistRenderer?: {
+      captionTracks?: Array<{
+        baseUrl: string;
+        languageCode: string;
+        name?: { simpleText?: string };
+        kind?: string;
+      }>;
+    };
+  };
+  playabilityStatus?: {
+    status: string;
+    reason?: string;
+  };
+}
+
 export class TranscriptService {
   /**
-   * Get video info (always works, even when transcripts don't)
+   * Get video info using Android client (more reliable)
    */
   async getVideoInfo(videoId: string): Promise<VideoInfo> {
-    const html = await this.fetchVideoPage(videoId);
-    const playerData = this.extractPlayerData(html);
+    const data = await this.fetchInnertubePlayer(videoId);
 
-    const details = playerData?.videoDetails || {};
+    if (!data.videoDetails) {
+      throw new Error('Could not fetch video details');
+    }
+
+    const details = data.videoDetails;
 
     return {
       title: details.title || 'Unknown',
@@ -36,17 +60,22 @@ export class TranscriptService {
   }
 
   /**
-   * Extract transcript from a YouTube video
+   * Extract transcript from a YouTube video using Android client
    */
   async getTranscript(videoId: string, lang?: string): Promise<VideoTranscript> {
-    const html = await this.fetchVideoPage(videoId);
-    const playerData = this.extractPlayerData(html);
+    const data = await this.fetchInnertubePlayer(videoId);
 
-    const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    // Check playability
+    if (data.playabilityStatus?.status !== 'OK') {
+      throw new Error(
+        `Video not available: ${data.playabilityStatus?.reason || data.playabilityStatus?.status || 'Unknown error'}`
+      );
+    }
+
+    const captions = data.captions?.playerCaptionsTracklistRenderer?.captionTracks;
 
     if (!captions || captions.length === 0) {
-      // Return video description as fallback context
-      const info = playerData?.videoDetails;
+      const info = data.videoDetails;
       throw new Error(
         `No captions available for this video.\n\n` +
         `Video: ${info?.title || videoId}\n` +
@@ -56,10 +85,10 @@ export class TranscriptService {
 
     // Find requested language or fall back
     const targetLang = lang || 'en';
-    let track = captions.find((t: any) => t.languageCode === targetLang);
+    let track = captions.find(t => t.languageCode === targetLang);
 
     if (!track) {
-      track = captions.find((t: any) => t.languageCode.startsWith('en')) || captions[0];
+      track = captions.find(t => t.languageCode.startsWith('en')) || captions[0];
     }
 
     const segments = await this.fetchTranscriptXml(track.baseUrl);
@@ -78,39 +107,48 @@ export class TranscriptService {
     };
   }
 
-  private async fetchVideoPage(videoId: string): Promise<string> {
-    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+  /**
+   * Fetch player data using YouTube's innertube API with Android client
+   * This bypasses restrictions on the web client
+   */
+  private async fetchInnertubePlayer(videoId: string): Promise<InnertubeResponse> {
+    const response = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+      method: 'POST',
       headers: {
-        'User-Agent': USER_AGENT,
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
+        'Content-Type': 'application/json',
+        'User-Agent': ANDROID_USER_AGENT,
+        'X-YouTube-Client-Name': '3',
+        'X-YouTube-Client-Version': '19.02.39',
+      },
+      body: JSON.stringify({
+        videoId,
+        context: {
+          client: {
+            clientName: 'ANDROID',
+            clientVersion: '19.02.39',
+            hl: 'en',
+            gl: 'US',
+          }
+        },
+        contentCheckOk: true,
+        racyCheckOk: true,
+      })
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch video: ${response.status}`);
+      throw new Error(`Failed to fetch video data: ${response.status}`);
     }
 
-    return response.text();
+    return response.json();
   }
 
-  private extractPlayerData(html: string): any {
-    const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
-    if (!match) {
-      throw new Error('Could not find video data');
-    }
-
-    try {
-      return JSON.parse(match[1]);
-    } catch {
-      throw new Error('Could not parse video data');
-    }
-  }
-
+  /**
+   * Fetch and parse transcript XML
+   */
   private async fetchTranscriptXml(url: string): Promise<TranscriptSegment[]> {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': USER_AGENT,
-        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': ANDROID_USER_AGENT,
       }
     });
 
@@ -124,13 +162,23 @@ export class TranscriptService {
       return [];
     }
 
-    const segments: TranscriptSegment[] = [];
-    const textRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]*)<\/text>/g;
+    return this.parseTranscriptXml(xml);
+  }
 
+  /**
+   * Parse transcript XML into segments
+   * Handles both timedtext format 3 (<p> tags) and legacy format (<text> tags)
+   */
+  private parseTranscriptXml(xml: string): TranscriptSegment[] {
+    const segments: TranscriptSegment[] = [];
+
+    // Try format 3 first (<p> tags with t/d attributes, time in ms)
+    const format3Regex = /<p t="(\d+)" d="(\d+)"[^>]*>([^<]*)<\/p>/g;
     let match;
-    while ((match = textRegex.exec(xml)) !== null) {
-      const start = parseFloat(match[1]);
-      const duration = parseFloat(match[2]);
+
+    while ((match = format3Regex.exec(xml)) !== null) {
+      const start = parseInt(match[1], 10) / 1000; // Convert ms to seconds
+      const duration = parseInt(match[2], 10) / 1000;
       const text = this.decodeHtml(match[3]).trim();
 
       if (text) {
@@ -138,9 +186,27 @@ export class TranscriptService {
       }
     }
 
+    // If no format 3 matches, try legacy format (<text> tags)
+    if (segments.length === 0) {
+      const legacyRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]*)<\/text>/g;
+
+      while ((match = legacyRegex.exec(xml)) !== null) {
+        const start = parseFloat(match[1]);
+        const duration = parseFloat(match[2]);
+        const text = this.decodeHtml(match[3]).trim();
+
+        if (text) {
+          segments.push({ start, duration, text });
+        }
+      }
+    }
+
     return segments;
   }
 
+  /**
+   * Decode HTML entities in transcript text
+   */
   private decodeHtml(text: string): string {
     return text
       .replace(/&amp;/g, '&')
@@ -153,6 +219,9 @@ export class TranscriptService {
       .replace(/\n/g, ' ');
   }
 
+  /**
+   * Get transcript with timestamps formatted as [MM:SS] or [HH:MM:SS]
+   */
   async getTimestampedTranscript(videoId: string, lang?: string): Promise<string> {
     const transcript = await this.getTranscript(videoId, lang);
 
@@ -161,6 +230,9 @@ export class TranscriptService {
       .join('\n');
   }
 
+  /**
+   * Search for text within a video's transcript
+   */
   async searchTranscript(
     videoId: string,
     query: string,
@@ -184,6 +256,9 @@ export class TranscriptService {
     return results;
   }
 
+  /**
+   * Format seconds into timestamp string
+   */
   private formatTimestamp(seconds: number): string {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
