@@ -1,55 +1,166 @@
-import { YoutubeTranscript } from 'youtube-transcript';
 import type { TranscriptSegment, VideoTranscript } from '../types/youtube.js';
+
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+interface CaptionTrack {
+  baseUrl: string;
+  languageCode: string;
+  name: string;
+}
+
+interface VideoInfo {
+  title: string;
+  description: string;
+  author: string;
+  lengthSeconds: number;
+  keywords: string[];
+}
 
 export class TranscriptService {
   /**
-   * Extract transcript from a YouTube video
-   * This is the KEY feature - gives Claude the ability to "understand" video content
+   * Get video info (always works, even when transcripts don't)
    */
-  async getTranscript(videoId: string, lang?: string): Promise<VideoTranscript> {
-    try {
-      const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId, {
-        lang: lang || 'en',
-      });
+  async getVideoInfo(videoId: string): Promise<VideoInfo> {
+    const html = await this.fetchVideoPage(videoId);
+    const playerData = this.extractPlayerData(html);
 
-      const segments: TranscriptSegment[] = transcriptItems.map((item) => ({
-        text: item.text,
-        start: item.offset / 1000, // Convert to seconds
-        duration: item.duration / 1000,
-      }));
+    const details = playerData?.videoDetails || {};
 
-      const fullText = segments.map((s) => s.text).join(' ');
-
-      return {
-        videoId,
-        language: lang || 'en',
-        segments,
-        fullText,
-      };
-    } catch (error) {
-      throw new Error(
-        `Failed to get transcript for video ${videoId}: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
+    return {
+      title: details.title || 'Unknown',
+      description: details.shortDescription || '',
+      author: details.author || 'Unknown',
+      lengthSeconds: parseInt(details.lengthSeconds || '0', 10),
+      keywords: details.keywords || [],
+    };
   }
 
   /**
-   * Get transcript with timestamps formatted for easy reading
+   * Extract transcript from a YouTube video
    */
+  async getTranscript(videoId: string, lang?: string): Promise<VideoTranscript> {
+    const html = await this.fetchVideoPage(videoId);
+    const playerData = this.extractPlayerData(html);
+
+    const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+    if (!captions || captions.length === 0) {
+      // Return video description as fallback context
+      const info = playerData?.videoDetails;
+      throw new Error(
+        `No captions available for this video.\n\n` +
+        `Video: ${info?.title || videoId}\n` +
+        `Description: ${(info?.shortDescription || '').substring(0, 300)}...`
+      );
+    }
+
+    // Find requested language or fall back
+    const targetLang = lang || 'en';
+    let track = captions.find((t: any) => t.languageCode === targetLang);
+
+    if (!track) {
+      track = captions.find((t: any) => t.languageCode.startsWith('en')) || captions[0];
+    }
+
+    const segments = await this.fetchTranscriptXml(track.baseUrl);
+
+    if (segments.length === 0) {
+      throw new Error('Could not fetch transcript content. The video may have region restrictions.');
+    }
+
+    const fullText = segments.map(s => s.text).join(' ');
+
+    return {
+      videoId,
+      language: track.languageCode,
+      segments,
+      fullText,
+    };
+  }
+
+  private async fetchVideoPage(videoId: string): Promise<string> {
+    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Accept-Language': 'en-US,en;q=0.9',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch video: ${response.status}`);
+    }
+
+    return response.text();
+  }
+
+  private extractPlayerData(html: string): any {
+    const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
+    if (!match) {
+      throw new Error('Could not find video data');
+    }
+
+    try {
+      return JSON.parse(match[1]);
+    } catch {
+      throw new Error('Could not parse video data');
+    }
+  }
+
+  private async fetchTranscriptXml(url: string): Promise<TranscriptSegment[]> {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Accept-Language': 'en-US,en;q=0.9',
+      }
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const xml = await response.text();
+
+    if (!xml || xml.length === 0) {
+      return [];
+    }
+
+    const segments: TranscriptSegment[] = [];
+    const textRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]*)<\/text>/g;
+
+    let match;
+    while ((match = textRegex.exec(xml)) !== null) {
+      const start = parseFloat(match[1]);
+      const duration = parseFloat(match[2]);
+      const text = this.decodeHtml(match[3]).trim();
+
+      if (text) {
+        segments.push({ start, duration, text });
+      }
+    }
+
+    return segments;
+  }
+
+  private decodeHtml(text: string): string {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+      .replace(/\n/g, ' ');
+  }
+
   async getTimestampedTranscript(videoId: string, lang?: string): Promise<string> {
     const transcript = await this.getTranscript(videoId, lang);
 
     return transcript.segments
-      .map((segment) => {
-        const timestamp = this.formatTimestamp(segment.start);
-        return `[${timestamp}] ${segment.text}`;
-      })
+      .map((segment) => `[${this.formatTimestamp(segment.start)}] ${segment.text}`)
       .join('\n');
   }
 
-  /**
-   * Search within a video's transcript
-   */
   async searchTranscript(
     videoId: string,
     query: string,
@@ -62,96 +173,17 @@ export class TranscriptService {
     for (let i = 0; i < transcript.segments.length; i++) {
       const segment = transcript.segments[i];
       if (segment.text.toLowerCase().includes(queryLower)) {
-        // Get surrounding context (previous and next segments)
         const prevText = i > 0 ? transcript.segments[i - 1].text : '';
         const nextText = i < transcript.segments.length - 1 ? transcript.segments[i + 1].text : '';
         const context = [prevText, segment.text, nextText].filter(Boolean).join(' ');
 
-        results.push({
-          timestamp: segment.start,
-          text: segment.text,
-          context,
-        });
+        results.push({ timestamp: segment.start, text: segment.text, context });
       }
     }
 
     return results;
   }
 
-  /**
-   * Get transcript segments within a time range
-   */
-  async getTranscriptRange(
-    videoId: string,
-    startTime: number,
-    endTime: number,
-    lang?: string
-  ): Promise<TranscriptSegment[]> {
-    const transcript = await this.getTranscript(videoId, lang);
-
-    return transcript.segments.filter(
-      (segment) => segment.start >= startTime && segment.start <= endTime
-    );
-  }
-
-  /**
-   * Get key moments / chapters from transcript (based on pauses or topic shifts)
-   */
-  async extractKeyMoments(
-    videoId: string,
-    lang?: string
-  ): Promise<{ timestamp: number; summary: string }[]> {
-    const transcript = await this.getTranscript(videoId, lang);
-    const keyMoments: { timestamp: number; summary: string }[] = [];
-
-    // Group segments into chunks of ~30 seconds for summarization
-    const chunkDuration = 30;
-    let currentChunk: TranscriptSegment[] = [];
-    let chunkStartTime = 0;
-
-    for (const segment of transcript.segments) {
-      if (currentChunk.length === 0) {
-        chunkStartTime = segment.start;
-      }
-
-      currentChunk.push(segment);
-
-      const chunkEnd = segment.start + segment.duration;
-      if (chunkEnd - chunkStartTime >= chunkDuration) {
-        const chunkText = currentChunk.map((s) => s.text).join(' ');
-        // Take first sentence or first 100 chars as summary
-        const summary = chunkText.length > 100
-          ? chunkText.substring(0, 100) + '...'
-          : chunkText;
-
-        keyMoments.push({
-          timestamp: chunkStartTime,
-          summary,
-        });
-
-        currentChunk = [];
-      }
-    }
-
-    // Handle remaining chunk
-    if (currentChunk.length > 0) {
-      const chunkText = currentChunk.map((s) => s.text).join(' ');
-      const summary = chunkText.length > 100
-        ? chunkText.substring(0, 100) + '...'
-        : chunkText;
-
-      keyMoments.push({
-        timestamp: chunkStartTime,
-        summary,
-      });
-    }
-
-    return keyMoments;
-  }
-
-  /**
-   * Format seconds to HH:MM:SS or MM:SS
-   */
   private formatTimestamp(seconds: number): string {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);

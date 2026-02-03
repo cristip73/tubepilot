@@ -29,17 +29,16 @@
   ],
   "author": "",
   "license": "MIT",
-  "homepage": "https://github.com/your-username/tubepilot",
+  "homepage": "https://github.com/ixex/tubepilot",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/tubepilot.git"
+    "url": "https://github.com/ixex/tubepilot.git"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "dotenv": "^16.4.1",
     "googleapis": "^130.0.0",
     "node-cache": "^5.1.2",
-    "youtube-transcript": "^1.2.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
