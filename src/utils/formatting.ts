@@ -1,5 +1,13 @@
 import type { VideoDetails, ChannelDetails, SearchResult } from '../types/youtube.js';
 
+// Re-export URL extraction functions from validation
+export {
+  extractVideoId,
+  extractChannelId,
+  extractPlaylistId,
+  cleanVideoUrl,
+} from './validation.js';
+
 /**
  * Format ISO 8601 duration to human readable
  * PT1H2M3S -> 1:02:03
@@ -90,64 +98,3 @@ export function formatSearchResults(results: SearchResult[]): string {
     .join('\n\n');
 }
 
-/**
- * Extract video ID from various YouTube URL formats
- */
-export function extractVideoId(urlOrId: string): string {
-  // If it's already just an ID (11 chars, alphanumeric with _ and -)
-  if (/^[a-zA-Z0-9_-]{11}$/.test(urlOrId)) {
-    return urlOrId;
-  }
-
-  // Try to extract from URL
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = urlOrId.match(pattern);
-    if (match) {
-      return match[1];
-    }
-  }
-
-  // Return as-is if no pattern matches
-  return urlOrId;
-}
-
-/**
- * Extract channel ID from various formats
- */
-export function extractChannelId(urlOrId: string): string {
-  // If it's already a channel ID (starts with UC)
-  if (/^UC[a-zA-Z0-9_-]{22}$/.test(urlOrId)) {
-    return urlOrId;
-  }
-
-  // Try to extract from URL
-  const match = urlOrId.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]+)/);
-  if (match) {
-    return match[1];
-  }
-
-  return urlOrId;
-}
-
-/**
- * Extract playlist ID from various formats
- */
-export function extractPlaylistId(urlOrId: string): string {
-  // If it's already a playlist ID (starts with PL or similar)
-  if (/^[A-Z]{2}[a-zA-Z0-9_-]+$/.test(urlOrId)) {
-    return urlOrId;
-  }
-
-  // Try to extract from URL
-  const match = urlOrId.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-  if (match) {
-    return match[1];
-  }
-
-  return urlOrId;
-}
