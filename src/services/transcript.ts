@@ -245,19 +245,40 @@ export class TranscriptService {
 
   /**
    * Parse transcript XML into segments
-   * Handles both timedtext format 3 (<p> tags) and legacy format (<text> tags)
+   * Handles multiple formats:
+   * - Format 3 with nested <s> tags (auto-generated): <p t="640" d="3480"><s>word</s><s>word</s></p>
+   * - Format 3 with direct text: <p t="640" d="3480">text</p>
+   * - Legacy format: <text start="1.5" dur="2.3">text</text>
    */
   private parseTranscriptXml(xml: string): TranscriptSegment[] {
     const segments: TranscriptSegment[] = [];
 
-    // Try format 3 first (<p> tags with t/d attributes, time in ms)
-    const format3Regex = /<p t="(\d+)" d="(\d+)"[^>]*>([^<]*)<\/p>/g;
+    // Try format 3 with nested <s> tags (auto-generated captions)
+    // Match: <p t="640" d="3480" ...>content with <s> tags</p>
+    const format3PTagRegex = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
     let match;
 
-    while ((match = format3Regex.exec(xml)) !== null) {
+    while ((match = format3PTagRegex.exec(xml)) !== null) {
       const start = parseInt(match[1], 10) / 1000; // Convert ms to seconds
       const duration = parseInt(match[2], 10) / 1000;
-      const text = this.decodeHtml(match[3]).trim();
+      const innerContent = match[3];
+
+      // Extract text from nested <s> tags or use direct content
+      let text = '';
+      if (innerContent.includes('<s')) {
+        // Auto-generated format: extract text from all <s> tags
+        const sTagRegex = /<s[^>]*>([^<]*)<\/s>/g;
+        let sMatch;
+        const words: string[] = [];
+        while ((sMatch = sTagRegex.exec(innerContent)) !== null) {
+          const word = this.decodeHtml(sMatch[1]);
+          if (word) words.push(word);
+        }
+        text = words.join('').trim();
+      } else {
+        // Direct text in <p> tag
+        text = this.decodeHtml(innerContent).trim();
+      }
 
       if (text) {
         segments.push({ start, duration, text });
@@ -266,7 +287,7 @@ export class TranscriptService {
 
     // If no format 3 matches, try legacy format (<text> tags)
     if (segments.length === 0) {
-      const legacyRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]*)<\/text>/g;
+      const legacyRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([\s\S]*?)<\/text>/g;
 
       while ((match = legacyRegex.exec(xml)) !== null) {
         const start = parseFloat(match[1]);
