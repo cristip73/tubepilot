@@ -22,18 +22,38 @@ const handlers = new Map<string, ToolHandler>();
 handlers.set('search_videos', async (args, ctx) => {
   const query = args?.query as string;
   const maxResults = (args?.maxResults as number) || 10;
-  const order = (args?.order as 'date' | 'rating' | 'relevance' | 'title' | 'viewCount') || 'relevance';
+  const order =
+    (args?.order as 'date' | 'rating' | 'relevance' | 'title' | 'viewCount') || 'relevance';
   const type = (args?.type as 'video' | 'channel' | 'playlist') || 'video';
   const duration = args?.duration as 'any' | 'short' | 'medium' | 'long' | undefined;
   const regionCode = (args?.regionCode as string) || 'US';
 
-  const cacheKey = CacheService.makeKey('search', query, maxResults, order, type, duration, regionCode);
+  const cacheKey = CacheService.makeKey(
+    'search',
+    query,
+    maxResults,
+    order,
+    type,
+    duration,
+    regionCode
+  );
   const results = await ctx.cache.getOrSet(cacheKey, () =>
-    ctx.youtubeApi!.searchVideos(query, { maxResults, order, type, videoDuration: duration, regionCode })
+    ctx.youtubeApi!.searchVideos(query, {
+      maxResults,
+      order,
+      type,
+      videoDuration: duration,
+      regionCode,
+    })
   );
 
   return {
-    content: [{ type: 'text', text: `Found ${results.length} results for "${query}":\n\n${formatSearchResults(results)}` }],
+    content: [
+      {
+        type: 'text',
+        text: `Found ${results.length} results for "${query}":\n\n${formatSearchResults(results)}`,
+      },
+    ],
   };
 });
 
@@ -67,7 +87,10 @@ handlers.set('get_channel_info', async (args, ctx) => {
   }
 
   if (!channel) {
-    return { content: [{ type: 'text', text: `Channel not found: ${channelInput}` }], isError: true };
+    return {
+      content: [{ type: 'text', text: `Channel not found: ${channelInput}` }],
+      isError: true,
+    };
   }
 
   return { content: [{ type: 'text', text: formatChannelDetails(channel) }] };
@@ -85,7 +108,10 @@ handlers.set('get_channel_videos', async (args, ctx) => {
   if (channelInput.startsWith('@')) {
     const channel = await ctx.youtubeApi!.getChannelByUsername(channelInput);
     if (!channel) {
-      return { content: [{ type: 'text', text: `Channel not found: ${channelInput}` }], isError: true };
+      return {
+        content: [{ type: 'text', text: `Channel not found: ${channelInput}` }],
+        isError: true,
+      };
     }
     channelId = channel.id;
   } else {
@@ -93,7 +119,11 @@ handlers.set('get_channel_videos', async (args, ctx) => {
   }
 
   const videos = await ctx.youtubeApi!.getChannelVideos(channelId, { maxResults, order });
-  return { content: [{ type: 'text', text: `Latest ${videos.length} videos:\n\n${formatSearchResults(videos)}` }] };
+  return {
+    content: [
+      { type: 'text', text: `Latest ${videos.length} videos:\n\n${formatSearchResults(videos)}` },
+    ],
+  };
 });
 
 // ============================================
@@ -109,7 +139,10 @@ handlers.set('get_playlist', async (args, ctx) => {
   ]);
 
   if (!playlist) {
-    return { content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }], isError: true };
+    return {
+      content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }],
+      isError: true,
+    };
   }
 
   const itemsList = items
@@ -117,7 +150,12 @@ handlers.set('get_playlist', async (args, ctx) => {
     .join('\n\n');
 
   return {
-    content: [{ type: 'text', text: `**${playlist.title}**\nBy: ${playlist.channelTitle} | ${playlist.itemCount} videos\n\n${itemsList}` }],
+    content: [
+      {
+        type: 'text',
+        text: `**${playlist.title}**\nBy: ${playlist.channelTitle} | ${playlist.itemCount} videos\n\n${itemsList}`,
+      },
+    ],
   };
 });
 
@@ -132,7 +170,10 @@ handlers.set('get_video_comments', async (args, ctx) => {
   const comments = await ctx.youtubeApi!.getVideoComments(videoId, { maxResults, order });
 
   const formatted = comments
-    .map((c) => `**${c.authorDisplayName}** (${formatNumber(c.likeCount)} likes)\n${c.textOriginal.substring(0, 300)}${c.textOriginal.length > 300 ? '...' : ''}`)
+    .map(
+      (c) =>
+        `**${c.authorDisplayName}** (${formatNumber(c.likeCount)} likes)\n${c.textOriginal.substring(0, 300)}${c.textOriginal.length > 300 ? '...' : ''}`
+    )
     .join('\n\n---\n\n');
 
   return { content: [{ type: 'text', text: `Top ${comments.length} comments:\n\n${formatted}` }] };
@@ -149,7 +190,10 @@ handlers.set('get_trending', async (args, ctx) => {
   const trending = await ctx.youtubeApi!.getTrendingVideos(regionCode, categoryId, maxResults);
 
   const formatted = trending
-    .map((v, i) => `${i + 1}. **${v.title}**\n   ${v.channelTitle} | ${formatNumber(v.viewCount)} views\n   https://youtube.com/watch?v=${v.id}`)
+    .map(
+      (v, i) =>
+        `${i + 1}. **${v.title}**\n   ${v.channelTitle} | ${formatNumber(v.viewCount)} views\n   https://youtube.com/watch?v=${v.id}`
+    )
     .join('\n\n');
 
   return { content: [{ type: 'text', text: `Trending in ${regionCode}:\n\n${formatted}` }] };
@@ -163,7 +207,9 @@ handlers.set('get_related_videos', async (args, ctx) => {
   const maxResults = (args?.maxResults as number) || 10;
   const related = await ctx.youtubeApi!.getRelatedVideos(videoId, maxResults);
 
-  return { content: [{ type: 'text', text: `Related videos:\n\n${formatSearchResults(related)}` }] };
+  return {
+    content: [{ type: 'text', text: `Related videos:\n\n${formatSearchResults(related)}` }],
+  };
 });
 
 // ============================================
@@ -195,13 +241,25 @@ handlers.set('get_video_chapters', async (args, ctx) => {
   }
 
   if (chapters.length === 0) {
-    return { content: [{ type: 'text', text: `No chapters found in "${video.title}". The video may not have chapter markers in its description.` }] };
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `No chapters found in "${video.title}". The video may not have chapter markers in its description.`,
+        },
+      ],
+    };
   }
 
   const formatted = chapters.map((c, i) => `${i + 1}. [${c.time}] ${c.title}`).join('\n');
 
   return {
-    content: [{ type: 'text', text: `**${video.title}**\n\n${chapters.length} chapters found:\n\n${formatted}` }],
+    content: [
+      {
+        type: 'text',
+        text: `**${video.title}**\n\n${chapters.length} chapters found:\n\n${formatted}`,
+      },
+    ],
   };
 });
 
@@ -215,7 +273,12 @@ handlers.set('get_categories', async (args, ctx) => {
   const formatted = categories.map((c) => `• **${c.id}**: ${c.title}`).join('\n');
 
   return {
-    content: [{ type: 'text', text: `YouTube categories for ${regionCode}:\n\n${formatted}\n\nUse the ID with get_trending to filter by category.` }],
+    content: [
+      {
+        type: 'text',
+        text: `YouTube categories for ${regionCode}:\n\n${formatted}\n\nUse the ID with get_trending to filter by category.`,
+      },
+    ],
   };
 });
 
@@ -225,7 +288,10 @@ handlers.set('get_categories', async (args, ctx) => {
 handlers.set('compare_videos', async (args, ctx) => {
   const videoIds = (args?.videoIds as string[]) || [];
   if (videoIds.length < 2 || videoIds.length > 10) {
-    return { content: [{ type: 'text', text: 'Please provide 2-10 video IDs to compare.' }], isError: true };
+    return {
+      content: [{ type: 'text', text: 'Please provide 2-10 video IDs to compare.' }],
+      isError: true,
+    };
   }
 
   const cleanIds = videoIds.map((id) => extractVideoId(id));
@@ -241,7 +307,8 @@ handlers.set('compare_videos', async (args, ctx) => {
   const comparison = videos
     .sort((a, b) => b.viewCount - a.viewCount)
     .map((v, i) => {
-      const engagementRate = v.viewCount > 0 ? ((v.likeCount / v.viewCount) * 100).toFixed(2) : '0.00';
+      const engagementRate =
+        v.viewCount > 0 ? ((v.likeCount / v.viewCount) * 100).toFixed(2) : '0.00';
       return `**${i + 1}. ${v.title}**
    Views: ${formatNumber(v.viewCount)} | Likes: ${formatNumber(v.likeCount)} | Comments: ${formatNumber(v.commentCount)}
    Engagement: ${engagementRate}% | Channel: ${v.channelTitle}
@@ -250,7 +317,12 @@ handlers.set('compare_videos', async (args, ctx) => {
     .join('\n\n');
 
   return {
-    content: [{ type: 'text', text: `**Video Comparison** (${videos.length} videos)\n\nTotal views: ${formatNumber(totalViews)} | Avg views: ${formatNumber(avgViews)}\n\n${comparison}` }],
+    content: [
+      {
+        type: 'text',
+        text: `**Video Comparison** (${videos.length} videos)\n\nTotal views: ${formatNumber(totalViews)} | Avg views: ${formatNumber(avgViews)}\n\n${comparison}`,
+      },
+    ],
   };
 });
 
@@ -270,12 +342,19 @@ handlers.set('analyze_channel', async (args, ctx) => {
   }
 
   if (!channel) {
-    return { content: [{ type: 'text', text: `Channel not found: ${channelInput}` }], isError: true };
+    return {
+      content: [{ type: 'text', text: `Channel not found: ${channelInput}` }],
+      isError: true,
+    };
   }
 
-  const recentVideos = await ctx.youtubeApi!.getChannelVideos(channel.id, { maxResults: videoCount, order: 'date' });
+  const recentVideos = await ctx.youtubeApi!.getChannelVideos(channel.id, {
+    maxResults: videoCount,
+    order: 'date',
+  });
   const videoIds = recentVideos.map((v) => v.id);
-  const videoDetails = videoIds.length > 0 ? await ctx.youtubeApi!.getMultipleVideoDetails(videoIds) : [];
+  const videoDetails =
+    videoIds.length > 0 ? await ctx.youtubeApi!.getMultipleVideoDetails(videoIds) : [];
 
   const totalViews = videoDetails.reduce((sum, v) => sum + v.viewCount, 0);
   const totalLikes = videoDetails.reduce((sum, v) => sum + v.likeCount, 0);
@@ -297,14 +376,16 @@ handlers.set('analyze_channel', async (args, ctx) => {
     else postingFrequency = 'Infrequent';
   }
 
-  const topVideo = videoDetails.length > 0
-    ? videoDetails.reduce((max, v) => (v.viewCount > max.viewCount ? v : max), videoDetails[0])
-    : null;
+  const topVideo =
+    videoDetails.length > 0
+      ? videoDetails.reduce((max, v) => (v.viewCount > max.viewCount ? v : max), videoDetails[0])
+      : null;
 
   return {
-    content: [{
-      type: 'text',
-      text: `**Channel Analysis: ${channel.title}**
+    content: [
+      {
+        type: 'text',
+        text: `**Channel Analysis: ${channel.title}**
 ${channel.customUrl ? `@${channel.customUrl}` : ''}
 
 **Overview**
@@ -319,11 +400,16 @@ ${channel.customUrl ? `@${channel.customUrl}` : ''}
 • Engagement rate: ${engagementRate}%
 • Posting frequency: ${postingFrequency}
 
-${topVideo ? `**Top Performing Video**
+${
+  topVideo
+    ? `**Top Performing Video**
 "${topVideo.title}"
 ${formatNumber(topVideo.viewCount)} views | ${formatNumber(topVideo.likeCount)} likes
-https://youtube.com/watch?v=${topVideo.id}` : ''}`,
-    }],
+https://youtube.com/watch?v=${topVideo.id}`
+    : ''
+}`,
+      },
+    ],
   };
 });
 
@@ -340,7 +426,10 @@ handlers.set('export_playlist', async (args, ctx) => {
   ]);
 
   if (!playlist) {
-    return { content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }], isError: true };
+    return {
+      content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }],
+      isError: true,
+    };
   }
 
   const exportData = {
@@ -363,7 +452,14 @@ handlers.set('export_playlist', async (args, ctx) => {
 
   const jsonOutput = JSON.stringify(exportData, null, 2);
   return {
-    content: [{ type: 'text', text: truncateResponse(`**Exported: ${playlist.title}**\n${items.length} videos\n\n\`\`\`json\n${jsonOutput}\n\`\`\``) }],
+    content: [
+      {
+        type: 'text',
+        text: truncateResponse(
+          `**Exported: ${playlist.title}**\n${items.length} videos\n\n\`\`\`json\n${jsonOutput}\n\`\`\``
+        ),
+      },
+    ],
   };
 });
 
@@ -399,7 +495,12 @@ handlers.set('check_live_status', async (args, ctx) => {
   }
 
   return {
-    content: [{ type: 'text', text: `**Live Status:** ${status}${details}\n\nhttps://youtube.com/watch?v=${videoId}` }],
+    content: [
+      {
+        type: 'text',
+        text: `**Live Status:** ${status}${details}\n\nhttps://youtube.com/watch?v=${videoId}`,
+      },
+    ],
   };
 });
 
@@ -414,7 +515,10 @@ handlers.set('get_shorts', async (args, ctx) => {
   if (channelInput.startsWith('@')) {
     const channel = await ctx.youtubeApi!.getChannelByUsername(channelInput);
     if (!channel) {
-      return { content: [{ type: 'text', text: `Channel not found: ${channelInput}` }], isError: true };
+      return {
+        content: [{ type: 'text', text: `Channel not found: ${channelInput}` }],
+        isError: true,
+      };
     }
     channelId = channel.id;
   } else {
@@ -432,26 +536,35 @@ handlers.set('get_shorts', async (args, ctx) => {
   const videoIds = videos.map((v) => v.id);
   const details = await ctx.youtubeApi!.getMultipleVideoDetails(videoIds);
 
-  const shorts = details.filter((v) => {
-    const duration = v.duration;
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return false;
-    const hours = parseInt(match[1] || '0', 10);
-    const mins = parseInt(match[2] || '0', 10);
-    const secs = parseInt(match[3] || '0', 10);
-    const totalSecs = hours * 3600 + mins * 60 + secs;
-    return totalSecs <= 60;
-  }).slice(0, maxResults);
+  const shorts = details
+    .filter((v) => {
+      const duration = v.duration;
+      const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!match) return false;
+      const hours = parseInt(match[1] || '0', 10);
+      const mins = parseInt(match[2] || '0', 10);
+      const secs = parseInt(match[3] || '0', 10);
+      const totalSecs = hours * 3600 + mins * 60 + secs;
+      return totalSecs <= 60;
+    })
+    .slice(0, maxResults);
 
   if (shorts.length === 0) {
     return { content: [{ type: 'text', text: `No Shorts found for this channel.` }] };
   }
 
   const formatted = shorts
-    .map((v, i) => `${i + 1}. **${v.title}**\n   ${formatNumber(v.viewCount)} views\n   https://youtube.com/shorts/${v.id}`)
+    .map(
+      (v, i) =>
+        `${i + 1}. **${v.title}**\n   ${formatNumber(v.viewCount)} views\n   https://youtube.com/shorts/${v.id}`
+    )
     .join('\n\n');
 
-  return { content: [{ type: 'text', text: `**YouTube Shorts** (${shorts.length} found)\n\n${formatted}` }] };
+  return {
+    content: [
+      { type: 'text', text: `**YouTube Shorts** (${shorts.length} found)\n\n${formatted}` },
+    ],
+  };
 });
 
 // ============================================
@@ -474,10 +587,20 @@ handlers.set('search_by_hashtag', async (args, ctx) => {
   }
 
   const formatted = results
-    .map((v, i) => `${i + 1}. **${v.title}**\n   ${v.channelTitle}\n   https://youtube.com/watch?v=${v.id}`)
+    .map(
+      (v, i) =>
+        `${i + 1}. **${v.title}**\n   ${v.channelTitle}\n   https://youtube.com/watch?v=${v.id}`
+    )
     .join('\n\n');
 
-  return { content: [{ type: 'text', text: `**Videos with ${hashtag}** (${results.length} found)\n\n${formatted}` }] };
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `**Videos with ${hashtag}** (${results.length} found)\n\n${formatted}`,
+      },
+    ],
+  };
 });
 
 // ============================================
@@ -486,7 +609,10 @@ handlers.set('search_by_hashtag', async (args, ctx) => {
 handlers.set('compare_channels', async (args, ctx) => {
   const channelInputs = (args?.channelIds as string[]) || [];
   if (channelInputs.length < 2 || channelInputs.length > 5) {
-    return { content: [{ type: 'text', text: 'Please provide 2-5 channel IDs or handles to compare.' }], isError: true };
+    return {
+      content: [{ type: 'text', text: 'Please provide 2-5 channel IDs or handles to compare.' }],
+      isError: true,
+    };
   }
 
   const channelPromises = channelInputs.map(async (input) => {
@@ -498,10 +624,15 @@ handlers.set('compare_channels', async (args, ctx) => {
   });
 
   const channelsRaw = await Promise.all(channelPromises);
-  const channels = channelsRaw.filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined);
+  const channels = channelsRaw.filter(
+    (c): c is NonNullable<typeof c> => c !== null && c !== undefined
+  );
 
   if (channels.length < 2) {
-    return { content: [{ type: 'text', text: 'Could not find enough channels to compare.' }], isError: true };
+    return {
+      content: [{ type: 'text', text: 'Could not find enough channels to compare.' }],
+      isError: true,
+    };
   }
 
   channels.sort((a, b) => (b?.subscriberCount || 0) - (a?.subscriberCount || 0));
@@ -509,20 +640,25 @@ handlers.set('compare_channels', async (args, ctx) => {
   const totalSubs = channels.reduce((sum, c) => sum + (c?.subscriberCount || 0), 0);
   const totalViews = channels.reduce((sum, c) => sum + (c?.viewCount || 0), 0);
 
-  const comparison = channels.map((c, i) => {
-    if (!c) return '';
-    const viewsPerSub = c.subscriberCount > 0 ? (c.viewCount / c.subscriberCount).toFixed(1) : '0';
-    return `**${i + 1}. ${c.title}**${c.customUrl ? ` (@${c.customUrl})` : ''}
+  const comparison = channels
+    .map((c, i) => {
+      if (!c) return '';
+      const viewsPerSub =
+        c.subscriberCount > 0 ? (c.viewCount / c.subscriberCount).toFixed(1) : '0';
+      return `**${i + 1}. ${c.title}**${c.customUrl ? ` (@${c.customUrl})` : ''}
    Subscribers: ${formatNumber(c.subscriberCount)} | Videos: ${formatNumber(c.videoCount)}
    Total Views: ${formatNumber(c.viewCount)} | Views/Sub: ${viewsPerSub}
    Country: ${c.country || 'N/A'}`;
-  }).join('\n\n');
+    })
+    .join('\n\n');
 
   return {
-    content: [{
-      type: 'text',
-      text: `**Channel Comparison** (${channels.length} channels)\n\nTotal subscribers: ${formatNumber(totalSubs)}\nTotal views: ${formatNumber(totalViews)}\n\n${comparison}`,
-    }],
+    content: [
+      {
+        type: 'text',
+        text: `**Channel Comparison** (${channels.length} channels)\n\nTotal subscribers: ${formatNumber(totalSubs)}\nTotal views: ${formatNumber(totalViews)}\n\n${comparison}`,
+      },
+    ],
   };
 });
 
@@ -533,14 +669,52 @@ handlers.set('analyze_comments_sentiment', async (args, ctx) => {
   const videoId = extractVideoId(args?.videoId as string);
   const maxComments = Math.min(Math.max((args?.maxComments as number) || 50, 10), 100);
 
-  const comments = await ctx.youtubeApi!.getVideoComments(videoId, { maxResults: maxComments, order: 'relevance' });
+  const comments = await ctx.youtubeApi!.getVideoComments(videoId, {
+    maxResults: maxComments,
+    order: 'relevance',
+  });
 
   if (comments.length === 0) {
     return { content: [{ type: 'text', text: 'No comments found for this video.' }] };
   }
 
-  const positiveWords = ['love', 'great', 'amazing', 'awesome', 'excellent', 'best', 'fantastic', 'perfect', 'beautiful', 'wonderful', 'helpful', 'thanks', 'thank you', '❤️', '👍', '🔥', '😍', '💯'];
-  const negativeWords = ['hate', 'bad', 'terrible', 'worst', 'awful', 'horrible', 'disappointing', 'waste', 'boring', 'clickbait', 'scam', 'fake', '👎', '😡', '🤮'];
+  const positiveWords = [
+    'love',
+    'great',
+    'amazing',
+    'awesome',
+    'excellent',
+    'best',
+    'fantastic',
+    'perfect',
+    'beautiful',
+    'wonderful',
+    'helpful',
+    'thanks',
+    'thank you',
+    '❤️',
+    '👍',
+    '🔥',
+    '😍',
+    '💯',
+  ];
+  const negativeWords = [
+    'hate',
+    'bad',
+    'terrible',
+    'worst',
+    'awful',
+    'horrible',
+    'disappointing',
+    'waste',
+    'boring',
+    'clickbait',
+    'scam',
+    'fake',
+    '👎',
+    '😡',
+    '🤮',
+  ];
 
   let positive = 0;
   let negative = 0;
@@ -555,10 +729,12 @@ handlers.set('analyze_comments_sentiment', async (args, ctx) => {
 
     if (hasPositive && !hasNegative) {
       positive++;
-      if (positiveExamples.length < 2) positiveExamples.push(comment.textOriginal.substring(0, 100));
+      if (positiveExamples.length < 2)
+        positiveExamples.push(comment.textOriginal.substring(0, 100));
     } else if (hasNegative && !hasPositive) {
       negative++;
-      if (negativeExamples.length < 2) negativeExamples.push(comment.textOriginal.substring(0, 100));
+      if (negativeExamples.length < 2)
+        negativeExamples.push(comment.textOriginal.substring(0, 100));
     } else {
       neutral++;
     }
@@ -576,10 +752,12 @@ handlers.set('analyze_comments_sentiment', async (args, ctx) => {
   else if (negative > positive) sentimentScore = '😕 Negative';
 
   return {
-    content: [{
-      type: 'text',
-      text: `**Comment Sentiment Analysis** (${total} comments)\n\n**Overall: ${sentimentScore}**\n\n• 👍 Positive: ${positive} (${positivePercent}%)\n• 👎 Negative: ${negative} (${negativePercent}%)\n• 😐 Neutral: ${neutral} (${neutralPercent}%)\n\n${positiveExamples.length > 0 ? `**Sample Positive:**\n"${positiveExamples[0]}..."\n\n` : ''}${negativeExamples.length > 0 ? `**Sample Negative:**\n"${negativeExamples[0]}..."` : ''}`,
-    }],
+    content: [
+      {
+        type: 'text',
+        text: `**Comment Sentiment Analysis** (${total} comments)\n\n**Overall: ${sentimentScore}**\n\n• 👍 Positive: ${positive} (${positivePercent}%)\n• 👎 Negative: ${negative} (${negativePercent}%)\n• 😐 Neutral: ${neutral} (${neutralPercent}%)\n\n${positiveExamples.length > 0 ? `**Sample Positive:**\n"${positiveExamples[0]}..."\n\n` : ''}${negativeExamples.length > 0 ? `**Sample Negative:**\n"${negativeExamples[0]}..."` : ''}`,
+      },
+    ],
   };
 });
 
@@ -597,10 +775,15 @@ handlers.set('get_comment_replies', async (args, ctx) => {
   }
 
   const formatted = replies
-    .map((r) => `**${r.authorDisplayName}** (${formatNumber(r.likeCount)} likes)\n${r.textOriginal.substring(0, 200)}${r.textOriginal.length > 200 ? '...' : ''}`)
+    .map(
+      (r) =>
+        `**${r.authorDisplayName}** (${formatNumber(r.likeCount)} likes)\n${r.textOriginal.substring(0, 200)}${r.textOriginal.length > 200 ? '...' : ''}`
+    )
     .join('\n\n---\n\n');
 
-  return { content: [{ type: 'text', text: `**Replies** (${replies.length} found)\n\n${formatted}` }] };
+  return {
+    content: [{ type: 'text', text: `**Replies** (${replies.length} found)\n\n${formatted}` }],
+  };
 });
 
 // ============================================
@@ -618,14 +801,18 @@ handlers.set('get_video_stats_history', async (args, ctx) => {
   const now = new Date();
   const daysOld = Math.floor((now.getTime() - publishDate.getTime()) / (1000 * 60 * 60 * 24));
   const viewsPerDay = daysOld > 0 ? Math.round(video.viewCount / daysOld) : video.viewCount;
-  const engagementRate = video.viewCount > 0 ? ((video.likeCount / video.viewCount) * 100).toFixed(2) : '0';
-  const commentsPerView = video.viewCount > 0 ? ((video.commentCount / video.viewCount) * 100).toFixed(3) : '0';
+  const engagementRate =
+    video.viewCount > 0 ? ((video.likeCount / video.viewCount) * 100).toFixed(2) : '0';
+  const commentsPerView =
+    video.viewCount > 0 ? ((video.commentCount / video.viewCount) * 100).toFixed(3) : '0';
 
   return {
-    content: [{
-      type: 'text',
-      text: `**Video Statistics: ${video.title}**\n\n**Current Stats:**\n• Views: ${formatNumber(video.viewCount)}\n• Likes: ${formatNumber(video.likeCount)}\n• Comments: ${formatNumber(video.commentCount)}\n\n**Performance Metrics:**\n• Published: ${publishDate.toLocaleDateString()} (${daysOld} days ago)\n• Views/day: ${formatNumber(viewsPerDay)}\n• Engagement rate: ${engagementRate}% (likes/views)\n• Comment rate: ${commentsPerView}% (comments/views)\n\nhttps://youtube.com/watch?v=${videoId}`,
-    }],
+    content: [
+      {
+        type: 'text',
+        text: `**Video Statistics: ${video.title}**\n\n**Current Stats:**\n• Views: ${formatNumber(video.viewCount)}\n• Likes: ${formatNumber(video.likeCount)}\n• Comments: ${formatNumber(video.commentCount)}\n\n**Performance Metrics:**\n• Published: ${publishDate.toLocaleDateString()} (${daysOld} days ago)\n• Views/day: ${formatNumber(viewsPerDay)}\n• Engagement rate: ${engagementRate}% (likes/views)\n• Comment rate: ${commentsPerView}% (comments/views)\n\nhttps://youtube.com/watch?v=${videoId}`,
+      },
+    ],
   };
 });
 
@@ -637,18 +824,27 @@ handlers.set('get_video_metadata_bulk', async (args, ctx) => {
   const includeStats = args?.includeStats !== false;
 
   if (videoIds.length === 0) {
-    return { content: [{ type: 'text', text: 'Please provide at least one video ID.' }], isError: true };
+    return {
+      content: [{ type: 'text', text: 'Please provide at least one video ID.' }],
+      isError: true,
+    };
   }
 
   if (videoIds.length > 50) {
-    return { content: [{ type: 'text', text: 'Maximum 50 videos allowed per request.' }], isError: true };
+    return {
+      content: [{ type: 'text', text: 'Maximum 50 videos allowed per request.' }],
+      isError: true,
+    };
   }
 
   const cleanIds = videoIds.map((id) => extractVideoId(id));
   const videos = await ctx.youtubeApi!.getMultipleVideoDetails(cleanIds);
 
   if (videos.length === 0) {
-    return { content: [{ type: 'text', text: 'No videos found for the provided IDs.' }], isError: true };
+    return {
+      content: [{ type: 'text', text: 'No videos found for the provided IDs.' }],
+      isError: true,
+    };
   }
 
   // Calculate totals
@@ -669,29 +865,35 @@ handlers.set('get_video_metadata_bulk', async (args, ctx) => {
 
   const totalDuration = formatTime(totalDurationSeconds);
 
-  const formatted = videos.map((v, i) => {
-    const durationMatch = v.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    let durationStr = 'Unknown';
-    if (durationMatch) {
-      const hours = parseInt(durationMatch[1] || '0', 10);
-      const mins = parseInt(durationMatch[2] || '0', 10);
-      const secs = parseInt(durationMatch[3] || '0', 10);
-      durationStr = hours > 0
-        ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-        : `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
+  const formatted = videos
+    .map((v, i) => {
+      const durationMatch = v.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      let durationStr = 'Unknown';
+      if (durationMatch) {
+        const hours = parseInt(durationMatch[1] || '0', 10);
+        const mins = parseInt(durationMatch[2] || '0', 10);
+        const secs = parseInt(durationMatch[3] || '0', 10);
+        durationStr =
+          hours > 0
+            ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+            : `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
 
-    let line = `${i + 1}. **${v.title}**\n   ${v.channelTitle} | ${durationStr}`;
-    if (includeStats) {
-      line += ` | ${formatNumber(v.viewCount)} views | ${formatNumber(v.likeCount)} likes`;
-    }
-    line += `\n   https://youtube.com/watch?v=${v.id}`;
-    return line;
-  }).join('\n\n');
+      let line = `${i + 1}. **${v.title}**\n   ${v.channelTitle} | ${durationStr}`;
+      if (includeStats) {
+        line += ` | ${formatNumber(v.viewCount)} views | ${formatNumber(v.likeCount)} likes`;
+      }
+      line += `\n   https://youtube.com/watch?v=${v.id}`;
+      return line;
+    })
+    .join('\n\n');
 
-  const header = `**Bulk Video Metadata** (${videos.length}/${videoIds.length} found)\n\n` +
+  const header =
+    `**Bulk Video Metadata** (${videos.length}/${videoIds.length} found)\n\n` +
     `Total duration: ${totalDuration}\n` +
-    (includeStats ? `Total views: ${formatNumber(totalViews)} | Total likes: ${formatNumber(totalLikes)}\n\n` : '\n');
+    (includeStats
+      ? `Total views: ${formatNumber(totalViews)} | Total likes: ${formatNumber(totalLikes)}\n\n`
+      : '\n');
 
   return { content: [{ type: 'text', text: header + formatted }] };
 });
@@ -709,12 +911,16 @@ handlers.set('get_playlist_summary', async (args, ctx) => {
   ]);
 
   if (!playlist) {
-    return { content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }], isError: true };
+    return {
+      content: [{ type: 'text', text: `Playlist not found: ${playlistId}` }],
+      isError: true,
+    };
   }
 
   // Get video details for stats
   const videoIds = items.map((item) => item.videoId).filter(Boolean);
-  const videoDetails = videoIds.length > 0 ? await ctx.youtubeApi!.getMultipleVideoDetails(videoIds) : [];
+  const videoDetails =
+    videoIds.length > 0 ? await ctx.youtubeApi!.getMultipleVideoDetails(videoIds) : [];
 
   // Calculate totals
   const totalViews = videoDetails.reduce((sum, v) => sum + v.viewCount, 0);
@@ -734,19 +940,51 @@ handlers.set('get_playlist_summary', async (args, ctx) => {
   }
 
   const totalDuration = formatTime(totalDurationSeconds);
-  const avgDuration = videoDetails.length > 0
-    ? formatTime(Math.round(totalDurationSeconds / videoDetails.length))
-    : '0:00';
+  const avgDuration =
+    videoDetails.length > 0
+      ? formatTime(Math.round(totalDurationSeconds / videoDetails.length))
+      : '0:00';
 
   // Extract topics from video titles if requested
   let topicsSection = '';
   if (includeTopics && videoDetails.length > 0) {
     // Extract common words/phrases from titles
     const wordCounts = new Map<string, number>();
-    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'it', 'as', 'be', 'this', 'that', 'how', 'what', 'why', 'when', 'part', 'episode', 'ep', 'chapter']);
+    const stopWords = new Set([
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'with',
+      'by',
+      'from',
+      'is',
+      'it',
+      'as',
+      'be',
+      'this',
+      'that',
+      'how',
+      'what',
+      'why',
+      'when',
+      'part',
+      'episode',
+      'ep',
+      'chapter',
+    ]);
 
     for (const v of videoDetails) {
-      const words = v.title.toLowerCase()
+      const words = v.title
+        .toLowerCase()
         .replace(/[^\w\s]/g, ' ')
         .split(/\s+/)
         .filter((w) => w.length > 2 && !stopWords.has(w) && !/^\d+$/.test(w));
@@ -771,42 +1009,54 @@ handlers.set('get_playlist_summary', async (args, ctx) => {
   // Find most viewed and longest videos
   let keyVideosSection = '';
   if (videoDetails.length > 0) {
-    const mostViewed = videoDetails.reduce((max, v) => v.viewCount > max.viewCount ? v : max, videoDetails[0]);
+    const mostViewed = videoDetails.reduce(
+      (max, v) => (v.viewCount > max.viewCount ? v : max),
+      videoDetails[0]
+    );
     const sorted = [...videoDetails].sort((a, b) => {
       const getDuration = (d: string) => {
         const m = d.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
         if (!m) return 0;
-        return parseInt(m[1] || '0', 10) * 3600 + parseInt(m[2] || '0', 10) * 60 + parseInt(m[3] || '0', 10);
+        return (
+          parseInt(m[1] || '0', 10) * 3600 +
+          parseInt(m[2] || '0', 10) * 60 +
+          parseInt(m[3] || '0', 10)
+        );
       };
       return getDuration(b.duration) - getDuration(a.duration);
     });
     const longest = sorted[0];
 
-    keyVideosSection = `\n**Key Videos:**\n` +
+    keyVideosSection =
+      `\n**Key Videos:**\n` +
       `• Most Viewed: "${mostViewed.title}" (${formatNumber(mostViewed.viewCount)} views)\n` +
       `• Longest: "${longest.title}"`;
   }
 
   // First 5 videos preview
-  const previewItems = items.slice(0, 5).map((item, i) =>
-    `${i + 1}. ${item.title}`
-  ).join('\n');
+  const previewItems = items
+    .slice(0, 5)
+    .map((item, i) => `${i + 1}. ${item.title}`)
+    .join('\n');
 
   return {
-    content: [{
-      type: 'text',
-      text: `**Playlist Summary: ${playlist.title}**\nBy: ${playlist.channelTitle}\n\n` +
-        `**Overview:**\n` +
-        `• Videos: ${playlist.itemCount}\n` +
-        `• Total Duration: ${totalDuration}\n` +
-        `• Avg Video Length: ${avgDuration}\n` +
-        `• Total Views: ${formatNumber(totalViews)}\n` +
-        `• Avg Views/Video: ${formatNumber(avgViews)}\n` +
-        topicsSection +
-        keyVideosSection +
-        `\n\n**First ${Math.min(5, items.length)} Videos:**\n${previewItems}\n\n` +
-        `https://youtube.com/playlist?list=${playlistId}`,
-    }],
+    content: [
+      {
+        type: 'text',
+        text:
+          `**Playlist Summary: ${playlist.title}**\nBy: ${playlist.channelTitle}\n\n` +
+          `**Overview:**\n` +
+          `• Videos: ${playlist.itemCount}\n` +
+          `• Total Duration: ${totalDuration}\n` +
+          `• Avg Video Length: ${avgDuration}\n` +
+          `• Total Views: ${formatNumber(totalViews)}\n` +
+          `• Avg Views/Video: ${formatNumber(avgViews)}\n` +
+          topicsSection +
+          keyVideosSection +
+          `\n\n**First ${Math.min(5, items.length)} Videos:**\n${previewItems}\n\n` +
+          `https://youtube.com/playlist?list=${playlistId}`,
+      },
+    ],
   };
 });
 

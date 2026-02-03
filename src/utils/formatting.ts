@@ -97,4 +97,3 @@ export function formatSearchResults(results: SearchResult[]): string {
     })
     .join('\n\n');
 }
-

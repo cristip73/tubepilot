@@ -91,7 +91,9 @@ export class TranscriptService {
   /**
    * List available caption languages for a video
    */
-  async listCaptionLanguages(videoId: string): Promise<Array<{ code: string; name: string; isAuto: boolean }>> {
+  async listCaptionLanguages(
+    videoId: string
+  ): Promise<Array<{ code: string; name: string; isAuto: boolean }>> {
     const data = await this.fetchInnertubePlayer(videoId);
 
     if (data.playabilityStatus?.status !== 'OK') {
@@ -153,26 +155,28 @@ export class TranscriptService {
       const info = data.videoDetails;
       throw new Error(
         `No captions available for this video.\n\n` +
-        `Video: ${info?.title || videoId}\n` +
-        `Description: ${(info?.shortDescription || '').substring(0, 300)}...`
+          `Video: ${info?.title || videoId}\n` +
+          `Description: ${(info?.shortDescription || '').substring(0, 300)}...`
       );
     }
 
     // Find requested language or fall back
     const targetLang = lang || 'en';
-    let track = captions.find(t => t.languageCode === targetLang);
+    let track = captions.find((t) => t.languageCode === targetLang);
 
     if (!track) {
-      track = captions.find(t => t.languageCode.startsWith('en')) || captions[0];
+      track = captions.find((t) => t.languageCode.startsWith('en')) || captions[0];
     }
 
     const segments = await this.fetchTranscriptXml(track.baseUrl);
 
     if (segments.length === 0) {
-      throw new Error('Could not fetch transcript content. The video may have region restrictions.');
+      throw new Error(
+        'Could not fetch transcript content. The video may have region restrictions.'
+      );
     }
 
-    const fullText = segments.map(s => s.text).join(' ');
+    const fullText = segments.map((s) => s.text).join(' ');
 
     return {
       videoId,
@@ -188,31 +192,32 @@ export class TranscriptService {
    */
   private async fetchInnertubePlayer(videoId: string): Promise<InnertubeResponse> {
     await transcriptLimiter.waitForAllowance('transcript');
-    const response = await withRetry(() => fetchWithTimeout(
-      'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': ANDROID_USER_AGENT,
-          'X-YouTube-Client-Name': '3',
-          'X-YouTube-Client-Version': '19.02.39',
-        },
-        body: JSON.stringify({
-          videoId,
-          context: {
-            client: {
-              clientName: 'ANDROID',
-              clientVersion: '19.02.39',
-              hl: 'en',
-              gl: 'US',
-            }
+    const response = await withRetry(
+      () =>
+        fetchWithTimeout('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': ANDROID_USER_AGENT,
+            'X-YouTube-Client-Name': '3',
+            'X-YouTube-Client-Version': '19.02.39',
           },
-          contentCheckOk: true,
-          racyCheckOk: true,
-        })
-      }
-    ), { maxRetries: 2, initialDelayMs: 500 });
+          body: JSON.stringify({
+            videoId,
+            context: {
+              client: {
+                clientName: 'ANDROID',
+                clientVersion: '19.02.39',
+                hl: 'en',
+                gl: 'US',
+              },
+            },
+            contentCheckOk: true,
+            racyCheckOk: true,
+          }),
+        }),
+      { maxRetries: 2, initialDelayMs: 500 }
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to fetch video data: ${response.status}`);
@@ -228,7 +233,7 @@ export class TranscriptService {
     const response = await fetchWithTimeout(url, {
       headers: {
         'User-Agent': ANDROID_USER_AGENT,
-      }
+      },
     });
 
     if (!response.ok) {
@@ -648,8 +653,8 @@ export class TranscriptService {
 
     // Fallback thumbnail
     const thumbnails = data.videoDetails.thumbnail?.thumbnails || [];
-    const bestThumb = thumbnails[thumbnails.length - 1]?.url ||
-      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    const bestThumb =
+      thumbnails[thumbnails.length - 1]?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
     return {
       videoTitle: data.videoDetails.title,
@@ -659,12 +664,14 @@ export class TranscriptService {
       visual: {
         spriteUrl: storyboard?.spriteUrl || null,
         thumbnailUrl: bestThumb,
-        framePosition: storyboard ? {
-          row: storyboard.row,
-          col: storyboard.col,
-          columns: storyboard.columns,
-          rows: storyboard.rows,
-        } : null,
+        framePosition: storyboard
+          ? {
+              row: storyboard.row,
+              col: storyboard.col,
+              columns: storyboard.columns,
+              rows: storyboard.rows,
+            }
+          : null,
       },
       hasTranscript,
       hasStoryboard,
@@ -720,7 +727,9 @@ export class TranscriptService {
     // Fallback: Use YouTube's thumbnail (less precise but always available)
     // This gives the video thumbnail, not a specific frame
     const thumbnails = data.videoDetails.thumbnail?.thumbnails || [];
-    const bestThumb = thumbnails[thumbnails.length - 1] || { url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` };
+    const bestThumb = thumbnails[thumbnails.length - 1] || {
+      url: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    };
 
     return {
       imageUrl: bestThumb.url,

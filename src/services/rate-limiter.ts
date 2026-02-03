@@ -4,9 +4,9 @@
  */
 
 interface RateLimitConfig {
-  maxRequests: number;      // Max requests in window
-  windowMs: number;         // Time window in milliseconds
-  retryAfterMs?: number;    // Default retry delay
+  maxRequests: number; // Max requests in window
+  windowMs: number; // Time window in milliseconds
+  retryAfterMs?: number; // Default retry delay
 }
 
 interface RateLimitState {
@@ -20,9 +20,9 @@ export class RateLimiter {
 
   constructor(config: Partial<RateLimitConfig> = {}) {
     this.config = {
-      maxRequests: config.maxRequests ?? 100,      // 100 requests
-      windowMs: config.windowMs ?? 60000,          // per minute
-      retryAfterMs: config.retryAfterMs ?? 1000,   // 1 second default retry
+      maxRequests: config.maxRequests ?? 100, // 100 requests
+      windowMs: config.windowMs ?? 60000, // per minute
+      retryAfterMs: config.retryAfterMs ?? 1000, // 1 second default retry
     };
   }
 
@@ -131,17 +131,17 @@ export class RateLimiter {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
 // Pre-configured rate limiters for different APIs
 export const youtubeApiLimiter = new RateLimiter({
-  maxRequests: 100,   // YouTube API quota is complex, this is conservative
-  windowMs: 60000,    // Per minute
+  maxRequests: 100, // YouTube API quota is complex, this is conservative
+  windowMs: 60000, // Per minute
 });
 
 export const transcriptLimiter = new RateLimiter({
-  maxRequests: 30,    // Transcript fetching (no official API)
+  maxRequests: 30, // Transcript fetching (no official API)
   windowMs: 60000,
 });

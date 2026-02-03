@@ -15,7 +15,8 @@ export async function createServer() {
   const hasKey = hasApiKey();
 
   // YouTube API service - only create if we have an API key
-  const youtubeApi = hasKey && config.youtubeApiKey ? new YouTubeAPIService(config.youtubeApiKey) : null;
+  const youtubeApi =
+    hasKey && config.youtubeApiKey ? new YouTubeAPIService(config.youtubeApiKey) : null;
 
   const transcriptService = new TranscriptService();
   const cache = new CacheService(config.cacheTtl);

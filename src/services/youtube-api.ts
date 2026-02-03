@@ -48,18 +48,20 @@ export class YouTubeAPIService {
       regionCode?: string;
     } = {}
   ): Promise<SearchResult[]> {
-    const response = await this.apiCall(() => this.youtube.search.list({
-      part: ['snippet'],
-      q: query,
-      maxResults: options.maxResults || 10,
-      order: options.order || 'relevance',
-      type: options.type ? [options.type] : ['video'],
-      videoDuration: options.videoDuration,
-      publishedAfter: options.publishedAfter,
-      publishedBefore: options.publishedBefore,
-      channelId: options.channelId,
-      regionCode: options.regionCode || 'US',
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.search.list({
+        part: ['snippet'],
+        q: query,
+        maxResults: options.maxResults || 10,
+        order: options.order || 'relevance',
+        type: options.type ? [options.type] : ['video'],
+        videoDuration: options.videoDuration,
+        publishedAfter: options.publishedAfter,
+        publishedBefore: options.publishedBefore,
+        channelId: options.channelId,
+        regionCode: options.regionCode || 'US',
+      })
+    );
 
     return (response.data.items || []).map((item) => ({
       id: item.id?.videoId || item.id?.channelId || item.id?.playlistId || '',
@@ -78,10 +80,12 @@ export class YouTubeAPIService {
   }
 
   async getVideoDetails(videoId: string): Promise<VideoDetails | null> {
-    const response = await this.apiCall(() => this.youtube.videos.list({
-      part: ['snippet', 'contentDetails', 'statistics'],
-      id: [videoId],
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.videos.list({
+        part: ['snippet', 'contentDetails', 'statistics'],
+        id: [videoId],
+      })
+    );
 
     const video = response.data.items?.[0];
     if (!video) return null;
@@ -111,10 +115,12 @@ export class YouTubeAPIService {
   }
 
   async getMultipleVideoDetails(videoIds: string[]): Promise<VideoDetails[]> {
-    const response = await this.apiCall(() => this.youtube.videos.list({
-      part: ['snippet', 'contentDetails', 'statistics'],
-      id: videoIds,
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.videos.list({
+        part: ['snippet', 'contentDetails', 'statistics'],
+        id: videoIds,
+      })
+    );
 
     return (response.data.items || []).map((video) => ({
       id: video.id || '',
@@ -141,10 +147,12 @@ export class YouTubeAPIService {
   }
 
   async getChannelDetails(channelId: string): Promise<ChannelDetails | null> {
-    const response = await this.apiCall(() => this.youtube.channels.list({
-      part: ['snippet', 'statistics', 'brandingSettings'],
-      id: [channelId],
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.channels.list({
+        part: ['snippet', 'statistics', 'brandingSettings'],
+        id: [channelId],
+      })
+    );
 
     const channel = response.data.items?.[0];
     if (!channel) return null;
@@ -171,12 +179,14 @@ export class YouTubeAPIService {
     // Search for channel by handle/username
     const handle = username.startsWith('@') ? username.slice(1) : username;
 
-    const searchResponse = await this.apiCall(() => this.youtube.search.list({
-      part: ['snippet'],
-      q: handle,
-      type: ['channel'],
-      maxResults: 5,
-    }));
+    const searchResponse = await this.apiCall(() =>
+      this.youtube.search.list({
+        part: ['snippet'],
+        q: handle,
+        type: ['channel'],
+        maxResults: 5,
+      })
+    );
 
     // Get the first channel result
     const matchingChannel = searchResponse.data.items?.[0];
@@ -202,10 +212,12 @@ export class YouTubeAPIService {
   }
 
   async getPlaylistDetails(playlistId: string): Promise<PlaylistDetails | null> {
-    const response = await this.apiCall(() => this.youtube.playlists.list({
-      part: ['snippet', 'contentDetails'],
-      id: [playlistId],
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.playlists.list({
+        part: ['snippet', 'contentDetails'],
+        id: [playlistId],
+      })
+    );
 
     const playlist = response.data.items?.[0];
     if (!playlist) return null;
@@ -226,15 +238,14 @@ export class YouTubeAPIService {
     };
   }
 
-  async getPlaylistItems(
-    playlistId: string,
-    maxResults: number = 50
-  ): Promise<PlaylistItem[]> {
-    const response = await this.apiCall(() => this.youtube.playlistItems.list({
-      part: ['snippet', 'contentDetails'],
-      playlistId,
-      maxResults,
-    }));
+  async getPlaylistItems(playlistId: string, maxResults: number = 50): Promise<PlaylistItem[]> {
+    const response = await this.apiCall(() =>
+      this.youtube.playlistItems.list({
+        part: ['snippet', 'contentDetails'],
+        playlistId,
+        maxResults,
+      })
+    );
 
     return (response.data.items || []).map((item) => ({
       id: item.id || '',
@@ -258,12 +269,14 @@ export class YouTubeAPIService {
       order?: 'time' | 'relevance';
     } = {}
   ): Promise<Comment[]> {
-    const response = await this.apiCall(() => this.youtube.commentThreads.list({
-      part: ['snippet'],
-      videoId,
-      maxResults: options.maxResults || 20,
-      order: options.order || 'relevance',
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.commentThreads.list({
+        part: ['snippet'],
+        videoId,
+        maxResults: options.maxResults || 20,
+        order: options.order || 'relevance',
+      })
+    );
 
     return (response.data.items || []).map((item) => {
       const comment = item.snippet?.topLevelComment?.snippet;
@@ -287,13 +300,15 @@ export class YouTubeAPIService {
     categoryId?: string,
     maxResults: number = 20
   ): Promise<TrendingVideo[]> {
-    const response = await this.apiCall(() => this.youtube.videos.list({
-      part: ['snippet', 'statistics'],
-      chart: 'mostPopular',
-      regionCode,
-      videoCategoryId: categoryId,
-      maxResults,
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.videos.list({
+        part: ['snippet', 'statistics'],
+        chart: 'mostPopular',
+        regionCode,
+        videoCategoryId: categoryId,
+        maxResults,
+      })
+    );
 
     return (response.data.items || []).map((video) => ({
       id: video.id || '',
@@ -327,10 +342,12 @@ export class YouTubeAPIService {
   }
 
   async getVideoCategories(regionCode: string = 'US'): Promise<{ id: string; title: string }[]> {
-    const response = await this.apiCall(() => this.youtube.videoCategories.list({
-      part: ['snippet'],
-      regionCode,
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.videoCategories.list({
+        part: ['snippet'],
+        regionCode,
+      })
+    );
 
     return (response.data.items || []).map((category) => ({
       id: category.id || '',
@@ -346,10 +363,12 @@ export class YouTubeAPIService {
     actualStartTime?: string;
     actualEndTime?: string;
   } | null> {
-    const response = await this.apiCall(() => this.youtube.videos.list({
-      part: ['snippet', 'liveStreamingDetails'],
-      id: [videoId],
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.videos.list({
+        part: ['snippet', 'liveStreamingDetails'],
+        id: [videoId],
+      })
+    );
 
     const video = response.data.items?.[0];
     if (!video) return null;
@@ -370,11 +389,13 @@ export class YouTubeAPIService {
   }
 
   async getCommentReplies(commentId: string, maxResults: number = 20): Promise<Comment[]> {
-    const response = await this.apiCall(() => this.youtube.comments.list({
-      part: ['snippet'],
-      parentId: commentId,
-      maxResults,
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.comments.list({
+        part: ['snippet'],
+        parentId: commentId,
+        maxResults,
+      })
+    );
 
     return (response.data.items || []).map((item) => {
       const snippet = item.snippet;
@@ -394,10 +415,12 @@ export class YouTubeAPIService {
   }
 
   async getMultipleChannelDetails(channelIds: string[]): Promise<ChannelDetails[]> {
-    const response = await this.apiCall(() => this.youtube.channels.list({
-      part: ['snippet', 'statistics', 'brandingSettings'],
-      id: channelIds,
-    }));
+    const response = await this.apiCall(() =>
+      this.youtube.channels.list({
+        part: ['snippet', 'statistics', 'brandingSettings'],
+        id: channelIds,
+      })
+    );
 
     return (response.data.items || []).map((channel) => ({
       id: channel.id || '',

@@ -2,7 +2,17 @@
  * Core handlers - Basic video info and transcript tools
  * These work WITHOUT an API key
  */
-import { HandlerModule, ToolHandler, ToolContext, ToolResult, ContentItem, truncateResponse, formatTime, parseTimestamp, MAX_TRANSCRIPT_LENGTH } from '../types.js';
+import {
+  HandlerModule,
+  ToolHandler,
+  ToolContext,
+  ToolResult,
+  ContentItem,
+  truncateResponse,
+  formatTime,
+  parseTimestamp,
+  MAX_TRANSCRIPT_LENGTH,
+} from '../types.js';
 import { extractVideoId } from '../../utils/formatting.js';
 import { CacheService } from '../../services/cache.js';
 
@@ -24,9 +34,10 @@ handlers.set('health_check', async (args, ctx) => {
     cache: {
       entries: cacheStats.keys,
       maxEntries: cacheStats.maxKeys,
-      hitRate: cacheStats.hits + cacheStats.misses > 0
-        ? ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1) + '%'
-        : 'N/A',
+      hitRate:
+        cacheStats.hits + cacheStats.misses > 0
+          ? ((cacheStats.hits / (cacheStats.hits + cacheStats.misses)) * 100).toFixed(1) + '%'
+          : 'N/A',
     },
     capabilities: {
       transcripts: true,
@@ -41,10 +52,12 @@ handlers.set('health_check', async (args, ctx) => {
   };
 
   return {
-    content: [{
-      type: 'text',
-      text: `**TubePilot Health Check**\n\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``,
-    }],
+    content: [
+      {
+        type: 'text',
+        text: `**TubePilot Health Check**\n\n\`\`\`json\n${JSON.stringify(status, null, 2)}\n\`\`\``,
+      },
+    ],
   };
 });
 
@@ -55,7 +68,9 @@ handlers.set('get_video_info', async (args, ctx) => {
   const videoId = extractVideoId(args?.videoId as string);
   const cacheKey = CacheService.makeKey('videoinfo', videoId);
 
-  const info = await ctx.cache.getOrSet(cacheKey, () => ctx.transcriptService.getVideoInfo(videoId));
+  const info = await ctx.cache.getOrSet(cacheKey, () =>
+    ctx.transcriptService.getVideoInfo(videoId)
+  );
 
   const hours = Math.floor(info.lengthSeconds / 3600);
   const minutes = Math.floor((info.lengthSeconds % 3600) / 60);
@@ -86,19 +101,28 @@ handlers.set('get_transcript', async (args, ctx) => {
   const language = (args?.language as string) || 'en';
   const withTimestamps = (args?.withTimestamps as boolean) || false;
 
-  const cacheKey = CacheService.makeKey('transcript', videoId, language, withTimestamps ? 'ts' : 'plain');
+  const cacheKey = CacheService.makeKey(
+    'transcript',
+    videoId,
+    language,
+    withTimestamps ? 'ts' : 'plain'
+  );
 
   if (withTimestamps) {
     const transcript = await ctx.cache.getOrSet(cacheKey, () =>
       ctx.transcriptService.getTimestampedTranscript(videoId, language)
     );
-    return { content: [{ type: 'text', text: truncateResponse(transcript, MAX_TRANSCRIPT_LENGTH) }] };
+    return {
+      content: [{ type: 'text', text: truncateResponse(transcript, MAX_TRANSCRIPT_LENGTH) }],
+    };
   }
 
   const transcript = await ctx.cache.getOrSet(cacheKey, () =>
     ctx.transcriptService.getTranscript(videoId, language)
   );
-  return { content: [{ type: 'text', text: truncateResponse(transcript.fullText, MAX_TRANSCRIPT_LENGTH) }] };
+  return {
+    content: [{ type: 'text', text: truncateResponse(transcript.fullText, MAX_TRANSCRIPT_LENGTH) }],
+  };
 });
 
 // ============================================
@@ -112,7 +136,9 @@ handlers.set('search_in_transcript', async (args, ctx) => {
   const results = await ctx.transcriptService.searchTranscript(videoId, query, language);
 
   if (results.length === 0) {
-    return { content: [{ type: 'text', text: `No matches found for "${query}" in the transcript.` }] };
+    return {
+      content: [{ type: 'text', text: `No matches found for "${query}" in the transcript.` }],
+    };
   }
 
   const formatted = results
@@ -123,7 +149,11 @@ handlers.set('search_in_transcript', async (args, ctx) => {
     })
     .join('\n\n');
 
-  return { content: [{ type: 'text', text: `Found ${results.length} matches for "${query}":\n\n${formatted}` }] };
+  return {
+    content: [
+      { type: 'text', text: `Found ${results.length} matches for "${query}":\n\n${formatted}` },
+    ],
+  };
 });
 
 // ============================================
@@ -285,23 +315,29 @@ handlers.set('find_moment_by_topic', async (args, ctx) => {
 
   if (results.length === 0) {
     return {
-      content: [{ type: 'text', text: `No mentions of "${topic}" found in this video's transcript.` }],
+      content: [
+        { type: 'text', text: `No mentions of "${topic}" found in this video's transcript.` },
+      ],
     };
   }
 
   const topResults = results.slice(0, maxResults);
 
-  const formatted = topResults.map((r, i) => {
-    const timeStr = formatTime(r.timestamp);
-    const secondsTotal = Math.floor(r.timestamp);
-    return `**${i + 1}. [${timeStr}]** (https://youtube.com/watch?v=${videoId}&t=${secondsTotal})\n"...${r.context}..."`;
-  }).join('\n\n');
+  const formatted = topResults
+    .map((r, i) => {
+      const timeStr = formatTime(r.timestamp);
+      const secondsTotal = Math.floor(r.timestamp);
+      return `**${i + 1}. [${timeStr}]** (https://youtube.com/watch?v=${videoId}&t=${secondsTotal})\n"...${r.context}..."`;
+    })
+    .join('\n\n');
 
   return {
-    content: [{
-      type: 'text',
-      text: `**Found ${results.length} mention${results.length > 1 ? 's' : ''} of "${topic}"**\n\nShowing top ${topResults.length}:\n\n${formatted}\n\n*Tip: Use get_video_moment with any timestamp to see transcript + visual together.*`,
-    }],
+    content: [
+      {
+        type: 'text',
+        text: `**Found ${results.length} mention${results.length > 1 ? 's' : ''} of "${topic}"**\n\nShowing top ${topResults.length}:\n\n${formatted}\n\n*Tip: Use get_video_moment with any timestamp to see transcript + visual together.*`,
+      },
+    ],
   };
 });
 

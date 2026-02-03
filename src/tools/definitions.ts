@@ -31,7 +31,11 @@ export const CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {
         videoId: { type: 'string', description: 'YouTube video ID or URL' },
-        language: { type: 'string', description: 'Language code (e.g., en, es, fr)', default: 'en' },
+        language: {
+          type: 'string',
+          description: 'Language code (e.g., en, es, fr)',
+          default: 'en',
+        },
         withTimestamps: {
           type: 'boolean',
           description: 'Include timestamps for each segment',
@@ -76,7 +80,10 @@ export const CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {
         videoId: { type: 'string', description: 'YouTube video ID or URL' },
-        timestamp: { type: 'string', description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"' },
+        timestamp: {
+          type: 'string',
+          description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"',
+        },
       },
       required: ['videoId', 'timestamp'],
     },
@@ -101,7 +108,10 @@ export const CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {
         videoId: { type: 'string', description: 'YouTube video ID or URL' },
-        startTime: { type: 'string', description: 'Start timestamp like "1:02" or "1:30:45" or seconds "62"' },
+        startTime: {
+          type: 'string',
+          description: 'Start timestamp like "1:02" or "1:30:45" or seconds "62"',
+        },
         endTime: { type: 'string', description: 'Optional end timestamp for clip range' },
       },
       required: ['videoId', 'startTime'],
@@ -115,7 +125,10 @@ export const CORE_TOOLS: Tool[] = [
       type: 'object',
       properties: {
         videoId: { type: 'string', description: 'YouTube video ID or URL' },
-        timestamp: { type: 'string', description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"' },
+        timestamp: {
+          type: 'string',
+          description: 'Timestamp like "1:02" or "1:30:45" or seconds "62"',
+        },
       },
       required: ['videoId', 'timestamp'],
     },
@@ -183,7 +196,11 @@ export const CORE_TOOLS: Tool[] = [
       properties: {
         videoId: { type: 'string', description: 'YouTube video ID or URL' },
         language: { type: 'string', description: 'Transcript language code', default: 'en' },
-        includeTimestamps: { type: 'boolean', description: 'Include timestamp links', default: true },
+        includeTimestamps: {
+          type: 'boolean',
+          description: 'Include timestamp links',
+          default: true,
+        },
       },
       required: ['videoId'],
     },
@@ -274,7 +291,11 @@ export const CORE_TOOLS: Tool[] = [
           description: 'Array of video IDs or URLs (2-10 videos)',
         },
         language: { type: 'string', description: 'Transcript language code', default: 'en' },
-        includeSeparators: { type: 'boolean', description: 'Add video title separators', default: true },
+        includeSeparators: {
+          type: 'boolean',
+          description: 'Add video title separators',
+          default: true,
+        },
       },
       required: ['videoIds'],
     },
@@ -358,7 +379,11 @@ export const CORE_TOOLS: Tool[] = [
           items: { type: 'string' },
           description: 'Array of video IDs or URLs (2-5 videos)',
         },
-        timestamp: { type: 'string', description: 'Timestamp to compare (e.g., "1:30")', default: '0:30' },
+        timestamp: {
+          type: 'string',
+          description: 'Timestamp to compare (e.g., "1:30")',
+          default: '0:30',
+        },
       },
       required: ['videoIds'],
     },
@@ -441,7 +466,8 @@ export const API_TOOLS: Tool[] = [
   },
   {
     name: 'get_channel_videos',
-    description: 'Get a list of videos from a YouTube channel. COMBINE WITH: get_video_metadata_bulk for detailed stats, merge_transcripts for combined content, compare_videos for performance comparison. (Requires API key)',
+    description:
+      'Get a list of videos from a YouTube channel. COMBINE WITH: get_video_metadata_bulk for detailed stats, merge_transcripts for combined content, compare_videos for performance comparison. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -458,7 +484,8 @@ export const API_TOOLS: Tool[] = [
   },
   {
     name: 'get_playlist',
-    description: 'Get details and videos from a YouTube playlist. COMBINE WITH: merge_transcripts to get all transcripts, get_video_metadata_bulk for stats on all videos, get_playlist_summary for full analysis. (Requires API key)',
+    description:
+      'Get details and videos from a YouTube playlist. COMBINE WITH: merge_transcripts to get all transcripts, get_video_metadata_bulk for stats on all videos, get_playlist_summary for full analysis. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -470,7 +497,8 @@ export const API_TOOLS: Tool[] = [
   },
   {
     name: 'get_video_comments',
-    description: 'Get comments from a YouTube video. COMBINE WITH: analyze_comments_sentiment for sentiment analysis, get_comment_replies for threaded discussions. (Requires API key)',
+    description:
+      'Get comments from a YouTube video. COMBINE WITH: analyze_comments_sentiment for sentiment analysis, get_comment_replies for threaded discussions. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -491,7 +519,11 @@ export const API_TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        regionCode: { type: 'string', description: 'Region code (e.g., US, UK, JP)', default: 'US' },
+        regionCode: {
+          type: 'string',
+          description: 'Region code (e.g., US, UK, JP)',
+          default: 'US',
+        },
         categoryId: {
           type: 'string',
           description: 'Category ID (e.g., 10 for Music, 20 for Gaming)',
@@ -531,7 +563,11 @@ export const API_TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        regionCode: { type: 'string', description: 'Region code (e.g., US, UK, JP)', default: 'US' },
+        regionCode: {
+          type: 'string',
+          description: 'Region code (e.g., US, UK, JP)',
+          default: 'US',
+        },
       },
     },
   },
@@ -647,15 +683,18 @@ export const API_TOOLS: Tool[] = [
       type: 'object',
       properties: {
         videoId: { type: 'string', description: 'YouTube video ID or URL' },
-        maxComments: { type: 'number', description: 'Max comments to analyze (10-100)', default: 50 },
+        maxComments: {
+          type: 'number',
+          description: 'Max comments to analyze (10-100)',
+          default: 50,
+        },
       },
       required: ['videoId'],
     },
   },
   {
     name: 'get_comment_replies',
-    description:
-      'Get replies to a specific top-level comment. (Requires API key)',
+    description: 'Get replies to a specific top-level comment. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {

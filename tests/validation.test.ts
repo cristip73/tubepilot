@@ -24,7 +24,9 @@ describe('extractVideoId', () => {
   });
 
   it('extracts ID from URL with playlist param (ignores playlist)', () => {
-    expect(extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLtest')).toBe('dQw4w9WgXcQ');
+    expect(extractVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLtest')).toBe(
+      'dQw4w9WgXcQ'
+    );
   });
 
   it('extracts ID from short URL with tracking params', () => {
@@ -51,7 +53,9 @@ describe('extractPlaylistId', () => {
   });
 
   it('extracts ID from watch URL with list param', () => {
-    expect(extractPlaylistId('https://www.youtube.com/watch?v=abc&list=PLtest123')).toBe('PLtest123');
+    expect(extractPlaylistId('https://www.youtube.com/watch?v=abc&list=PLtest123')).toBe(
+      'PLtest123'
+    );
   });
 
   it('accepts bare playlist ID', () => {

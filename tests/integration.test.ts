@@ -230,9 +230,27 @@ describe('Integration Tests - Real User Scenarios', () => {
       ]);
 
       mockYoutubeApi.getMultipleVideoDetails.mockResolvedValue([
-        { id: 'aaaaaaaaaaa', title: 'Video 1', viewCount: 100000, likeCount: 5000, publishedAt: '2024-01-10' },
-        { id: 'bbbbbbbbbbb', title: 'Video 2', viewCount: 200000, likeCount: 8000, publishedAt: '2024-01-05' },
-        { id: 'ccccccccccc', title: 'Video 3', viewCount: 150000, likeCount: 6000, publishedAt: '2024-01-01' },
+        {
+          id: 'aaaaaaaaaaa',
+          title: 'Video 1',
+          viewCount: 100000,
+          likeCount: 5000,
+          publishedAt: '2024-01-10',
+        },
+        {
+          id: 'bbbbbbbbbbb',
+          title: 'Video 2',
+          viewCount: 200000,
+          likeCount: 8000,
+          publishedAt: '2024-01-05',
+        },
+        {
+          id: 'ccccccccccc',
+          title: 'Video 3',
+          viewCount: 150000,
+          likeCount: 6000,
+          publishedAt: '2024-01-01',
+        },
       ]);
 
       const result = await handleToolCall('analyze_channel', { channelId: '@techreviews' }, ctx);
@@ -247,8 +265,22 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: User compares multiple videos', () => {
     it('compares 2-10 videos successfully', async () => {
       mockYoutubeApi.getMultipleVideoDetails.mockResolvedValue([
-        { id: 'aaaaaaaaaaa', title: 'Video A', viewCount: 500000, likeCount: 25000, commentCount: 1000, channelTitle: 'Channel A' },
-        { id: 'bbbbbbbbbbb', title: 'Video B', viewCount: 300000, likeCount: 20000, commentCount: 800, channelTitle: 'Channel B' },
+        {
+          id: 'aaaaaaaaaaa',
+          title: 'Video A',
+          viewCount: 500000,
+          likeCount: 25000,
+          commentCount: 1000,
+          channelTitle: 'Channel A',
+        },
+        {
+          id: 'bbbbbbbbbbb',
+          title: 'Video B',
+          viewCount: 300000,
+          likeCount: 20000,
+          commentCount: 800,
+          channelTitle: 'Channel B',
+        },
       ]);
 
       const result = await handleToolCall(
@@ -341,8 +373,20 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: User searches YouTube', () => {
     it('searches with various filters', async () => {
       mockYoutubeApi.searchVideos.mockResolvedValue([
-        { id: 'v1', type: 'video', title: 'Result 1', channelTitle: 'Ch1', publishedAt: '2024-01-01' },
-        { id: 'v2', type: 'video', title: 'Result 2', channelTitle: 'Ch2', publishedAt: '2024-01-02' },
+        {
+          id: 'v1',
+          type: 'video',
+          title: 'Result 1',
+          channelTitle: 'Ch1',
+          publishedAt: '2024-01-01',
+        },
+        {
+          id: 'v2',
+          type: 'video',
+          title: 'Result 2',
+          channelTitle: 'Ch2',
+          publishedAt: '2024-01-02',
+        },
       ]);
 
       const result = await handleToolCall(
@@ -397,7 +441,11 @@ describe('Integration Tests - Real User Scenarios', () => {
         { code: 'fr', name: 'French', isAuto: false },
       ]);
 
-      const result = await handleToolCall('list_caption_languages', { videoId: 'dQw4w9WgXcQ' }, ctx);
+      const result = await handleToolCall(
+        'list_caption_languages',
+        { videoId: 'dQw4w9WgXcQ' },
+        ctx
+      );
 
       expect(result.content[0].text).toContain('3 languages');
       expect(result.content[0].text).toContain('en');
@@ -407,7 +455,11 @@ describe('Integration Tests - Real User Scenarios', () => {
     it('handles videos with no captions', async () => {
       mockTranscriptService.listCaptionLanguages.mockResolvedValue([]);
 
-      const result = await handleToolCall('list_caption_languages', { videoId: 'dQw4w9WgXcQ' }, ctx);
+      const result = await handleToolCall(
+        'list_caption_languages',
+        { videoId: 'dQw4w9WgXcQ' },
+        ctx
+      );
 
       expect(result.content[0].text).toContain('No captions available');
     });
@@ -631,10 +683,20 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: User compares multiple channels', () => {
     it('compares 2-5 channels', async () => {
       mockYoutubeApi.getChannelByUsername.mockResolvedValue({
-        id: 'UC1', title: 'Channel A', subscriberCount: 1000000, videoCount: 500, viewCount: 50000000, customUrl: 'channelA',
+        id: 'UC1',
+        title: 'Channel A',
+        subscriberCount: 1000000,
+        videoCount: 500,
+        viewCount: 50000000,
+        customUrl: 'channelA',
       });
       mockYoutubeApi.getChannelDetails.mockResolvedValue({
-        id: 'UC2', title: 'Channel B', subscriberCount: 500000, videoCount: 200, viewCount: 25000000, customUrl: 'channelB',
+        id: 'UC2',
+        title: 'Channel B',
+        subscriberCount: 500000,
+        videoCount: 200,
+        viewCount: 25000000,
+        customUrl: 'channelB',
       });
 
       const result = await handleToolCall(
@@ -659,9 +721,17 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: User analyzes comment sentiment', () => {
     it('analyzes positive and negative comments', async () => {
       mockYoutubeApi.getVideoComments.mockResolvedValue([
-        { textOriginal: 'Love this video! Amazing content ❤️', authorDisplayName: 'Fan1', likeCount: 100 },
+        {
+          textOriginal: 'Love this video! Amazing content ❤️',
+          authorDisplayName: 'Fan1',
+          likeCount: 100,
+        },
         { textOriginal: 'Great tutorial, very helpful!', authorDisplayName: 'Fan2', likeCount: 50 },
-        { textOriginal: 'This is terrible, waste of time', authorDisplayName: 'Critic', likeCount: 5 },
+        {
+          textOriginal: 'This is terrible, waste of time',
+          authorDisplayName: 'Critic',
+          likeCount: 5,
+        },
         { textOriginal: 'Interesting perspective.', authorDisplayName: 'Neutral', likeCount: 10 },
       ]);
 
@@ -702,7 +772,11 @@ describe('Integration Tests - Real User Scenarios', () => {
         publishedAt: '2024-01-01T00:00:00Z',
       });
 
-      const result = await handleToolCall('get_video_stats_history', { videoId: 'dQw4w9WgXcQ' }, ctx);
+      const result = await handleToolCall(
+        'get_video_stats_history',
+        { videoId: 'dQw4w9WgXcQ' },
+        ctx
+      );
 
       expect(result.content[0].text).toContain('Video Statistics');
       expect(result.content[0].text).toContain('Views');
@@ -715,7 +789,8 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: Developer extracts code from tutorial', () => {
     it('finds CLI commands and code patterns', async () => {
       mockTranscriptService.getTranscript.mockResolvedValue({
-        fullText: 'Run npm install express to install the package. Then create a file called app.js',
+        fullText:
+          'Run npm install express to install the package. Then create a file called app.js',
         segments: [
           { start: 0, text: 'Run npm install express to install the package' },
           { start: 30, text: 'Then create a file called app.js' },
@@ -743,7 +818,8 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: Developer gets tutorial steps', () => {
     it('extracts step-by-step instructions', async () => {
       mockTranscriptService.getTranscript.mockResolvedValue({
-        fullText: 'First, create a new folder. Then, initialize npm. Next, install the dependencies.',
+        fullText:
+          'First, create a new folder. Then, initialize npm. Next, install the dependencies.',
         segments: [
           { start: 0, text: 'First, create a new folder for your project.' },
           { start: 30, text: 'Then, initialize npm with npm init.' },
@@ -768,8 +844,14 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: Developer finds tech stack', () => {
     it('detects technologies mentioned in video', async () => {
       mockTranscriptService.getTranscript.mockResolvedValue({
-        fullText: 'We will be using React for the frontend and Node.js with Express for the backend. PostgreSQL will be our database.',
-        segments: [{ start: 0, text: 'We will be using React for the frontend and Node.js with Express for the backend. PostgreSQL will be our database.' }],
+        fullText:
+          'We will be using React for the frontend and Node.js with Express for the backend. PostgreSQL will be our database.',
+        segments: [
+          {
+            start: 0,
+            text: 'We will be using React for the frontend and Node.js with Express for the backend. PostgreSQL will be our database.',
+          },
+        ],
       });
       mockTranscriptService.getVideoInfo.mockResolvedValue({
         title: 'Full Stack Tutorial',
@@ -851,7 +933,8 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: User gets video summary', () => {
     it('generates bullet-point summary', async () => {
       mockTranscriptService.getTranscript.mockResolvedValue({
-        fullText: 'The important thing to remember is that APIs are essential. In summary, always use proper authentication.',
+        fullText:
+          'The important thing to remember is that APIs are essential. In summary, always use proper authentication.',
         segments: [
           { start: 0, text: 'The important thing to remember is that APIs are essential.' },
           { start: 60, text: 'In summary, always use proper authentication.' },
@@ -936,7 +1019,11 @@ describe('Integration Tests - Real User Scenarios', () => {
         segments: [],
       });
 
-      const result = await handleToolCall('extract_links_mentions', { videoId: 'tech1234abc' }, ctx);
+      const result = await handleToolCall(
+        'extract_links_mentions',
+        { videoId: 'tech1234abc' },
+        ctx
+      );
 
       expect(result.content[0].text).toContain('Links & Mentions');
       expect(result.content[0].text).toContain('https://example.com');
@@ -947,7 +1034,8 @@ describe('Integration Tests - Real User Scenarios', () => {
   describe('Scenario: User gets video outline', () => {
     it('creates structured outline with sections', async () => {
       mockTranscriptService.getTranscript.mockResolvedValue({
-        fullText: 'Introduction to the topic. Now lets talk about the main concepts. Finally, here is the conclusion.',
+        fullText:
+          'Introduction to the topic. Now lets talk about the main concepts. Finally, here is the conclusion.',
         segments: [
           { start: 0, text: 'Introduction to the topic.' },
           { start: 120, text: 'Now lets talk about the main concepts.' },
@@ -993,7 +1081,9 @@ describe('Integration Tests - Real User Scenarios', () => {
 
     it('handles videos with no captions (music/silent/no commentary)', async () => {
       mockTranscriptService.getTranscript.mockRejectedValue(
-        new Error('No captions available for this video.\n\nVideo: Lo-Fi Beats\nDescription: Relaxing music...')
+        new Error(
+          'No captions available for this video.\n\nVideo: Lo-Fi Beats\nDescription: Relaxing music...'
+        )
       );
 
       await expect(

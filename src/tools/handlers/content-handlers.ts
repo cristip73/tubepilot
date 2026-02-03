@@ -85,13 +85,45 @@ handlers.set('answer_from_video', async (args, ctx) => {
   const transcript = await ctx.transcriptService.getTranscript(videoId, language);
   const info = await ctx.transcriptService.getVideoInfo(videoId);
 
-  const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'what', 'when', 'where', 'who', 'how', 'why', 'does', 'do', 'did', 'this', 'that', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'about']);
-  const questionWords = question.toLowerCase()
+  const stopWords = new Set([
+    'the',
+    'a',
+    'an',
+    'is',
+    'are',
+    'was',
+    'were',
+    'what',
+    'when',
+    'where',
+    'who',
+    'how',
+    'why',
+    'does',
+    'do',
+    'did',
+    'this',
+    'that',
+    'in',
+    'on',
+    'at',
+    'to',
+    'for',
+    'of',
+    'with',
+    'about',
+  ]);
+  const questionWords = question
+    .toLowerCase()
     .replace(/[?.,!]/g, '')
     .split(/\s+/)
     .filter((w) => w.length > 2 && !stopWords.has(w));
 
-  const relevantSegments: { segment: typeof transcript.segments[0]; score: number; matchedWords: string[] }[] = [];
+  const relevantSegments: {
+    segment: (typeof transcript.segments)[0];
+    score: number;
+    matchedWords: string[];
+  }[] = [];
 
   for (const segment of transcript.segments) {
     const text = segment.text.toLowerCase();
@@ -115,10 +147,12 @@ handlers.set('answer_from_video', async (args, ctx) => {
 
   if (relevantSegments.length === 0) {
     return {
-      content: [{
-        type: 'text',
-        text: `**Question:** ${question}\n\n**Answer:** This topic doesn't appear to be discussed in the video "${info.title}". The transcript doesn't contain relevant content matching your question.\n\nTry:\n• Rephrasing your question with different keywords\n• Using find_moment_by_topic to search for specific terms\n• Watching specific sections using get_video_moment`,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: `**Question:** ${question}\n\n**Answer:** This topic doesn't appear to be discussed in the video "${info.title}". The transcript doesn't contain relevant content matching your question.\n\nTry:\n• Rephrasing your question with different keywords\n• Using find_moment_by_topic to search for specific terms\n• Watching specific sections using get_video_moment`,
+        },
+      ],
     };
   }
 
@@ -252,7 +286,12 @@ handlers.set('extract_links_mentions', async (args, ctx) => {
 
   if (!foundAny) {
     return {
-      content: [{ type: 'text', text: 'No links, mentions, or product references detected in this video. The creator may not have included external resources.' }],
+      content: [
+        {
+          type: 'text',
+          text: 'No links, mentions, or product references detected in this video. The creator may not have included external resources.',
+        },
+      ],
     };
   }
 
@@ -293,14 +332,20 @@ handlers.set('get_video_outline', async (args, ctx) => {
         isNewSection = true;
         const matchIndex = chunkText.toLowerCase().indexOf(match[0].toLowerCase());
         const contextEnd = Math.min(matchIndex + 80, chunkText.length);
-        sectionTitle = chunkText.substring(matchIndex, contextEnd).replace(/[.!?,]/g, '').trim();
+        sectionTitle = chunkText
+          .substring(matchIndex, contextEnd)
+          .replace(/[.!?,]/g, '')
+          .trim();
         break;
       }
     }
 
     if (!isNewSection && (i === 0 || i % (chunkSize * 3) === 0)) {
       isNewSection = true;
-      sectionTitle = chunkText.substring(0, 60).replace(/[.!?,]/g, '').trim();
+      sectionTitle = chunkText
+        .substring(0, 60)
+        .replace(/[.!?,]/g, '')
+        .trim();
     }
 
     if (isNewSection && sectionTitle) {

@@ -25,11 +25,7 @@ export const playlistIdSchema = z
   .describe('YouTube playlist ID or URL');
 
 export const searchOptionsSchema = z.object({
-  query: z
-    .string()
-    .min(1)
-    .max(MAX_QUERY_LENGTH)
-    .describe('Search query (max 500 chars)'),
+  query: z.string().min(1).max(MAX_QUERY_LENGTH).describe('Search query (max 500 chars)'),
   maxResults: z
     .number()
     .int()
@@ -72,25 +68,13 @@ export const transcriptOptionsSchema = z.object({
     .regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Must be valid language code (e.g., en, en-US)')
     .default('en')
     .describe('Language code for transcript'),
-  withTimestamps: z
-    .boolean()
-    .default(false)
-    .describe('Include timestamps in output'),
+  withTimestamps: z.boolean().default(false).describe('Include timestamps in output'),
 });
 
 export const commentsOptionsSchema = z.object({
   videoId: videoIdSchema,
-  maxResults: z
-    .number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
-    .describe('Maximum comments to fetch'),
-  order: z
-    .enum(['time', 'relevance'])
-    .default('relevance')
-    .describe('Comment sort order'),
+  maxResults: z.number().int().min(1).max(100).default(20).describe('Maximum comments to fetch'),
+  order: z.enum(['time', 'relevance']).default('relevance').describe('Comment sort order'),
 });
 
 export const trendingOptionsSchema = z.object({
@@ -106,13 +90,7 @@ export const trendingOptionsSchema = z.object({
     .regex(/^\d+$/, 'Must be numeric category ID')
     .optional()
     .describe('Video category ID'),
-  maxResults: z
-    .number()
-    .int()
-    .min(1)
-    .max(50)
-    .default(20)
-    .describe('Maximum results'),
+  maxResults: z.number().int().min(1).max(50).default(20).describe('Maximum results'),
 });
 
 /**
@@ -192,7 +170,6 @@ export function extractVideoId(input: string): string {
 
     // Non-YouTube URL - don't try to extract
     throw new Error(`Could not extract video ID from: ${cleaned}`);
-
   } catch (e) {
     // If it's our error, rethrow
     if (e instanceof Error && e.message.includes('Could not extract')) {

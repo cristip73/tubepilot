@@ -57,14 +57,14 @@ handlers.set('merge_transcripts', async (args, ctx) => {
     }
   }
 
-  const successful = results.filter(r => !r.error);
-  const failed = results.filter(r => r.error);
+  const successful = results.filter((r) => !r.error);
+  const failed = results.filter((r) => r.error);
 
   let merged = `# Merged Transcripts (${successful.length}/${videoIds.length} videos)\n\n`;
   merged += `**Total content:** ${totalLength.toLocaleString()} chars, ${totalSegments} segments\n\n`;
 
   if (failed.length > 0) {
-    merged += `**Failed to fetch:** ${failed.map(f => f.videoId).join(', ')}\n\n`;
+    merged += `**Failed to fetch:** ${failed.map((f) => f.videoId).join(', ')}\n\n`;
   }
 
   merged += '---\n\n';
@@ -137,10 +137,17 @@ handlers.set('analyze_short', async (args, ctx) => {
 
     // Detect CTA patterns
     const ctaPatterns = [
-      /follow/i, /subscribe/i, /like/i, /comment/i, /share/i,
-      /check out/i, /link in bio/i, /part \d/i, /more/i,
+      /follow/i,
+      /subscribe/i,
+      /like/i,
+      /comment/i,
+      /share/i,
+      /check out/i,
+      /link in bio/i,
+      /part \d/i,
+      /more/i,
     ];
-    const detectedCTAs = ctaPatterns.filter(p => p.test(transcriptContent));
+    const detectedCTAs = ctaPatterns.filter((p) => p.test(transcriptContent));
     if (detectedCTAs.length > 0) {
       analysis += `**Call-to-Actions Detected:** ${detectedCTAs.length}\n`;
     }
@@ -149,13 +156,19 @@ handlers.set('analyze_short', async (args, ctx) => {
   // Keywords as hashtags
   if (info.keywords.length > 0) {
     analysis += `\n## Hashtags/Keywords\n`;
-    analysis += info.keywords.slice(0, 10).map(k => `#${k.replace(/\s+/g, '')}`).join(' ');
+    analysis += info.keywords
+      .slice(0, 10)
+      .map((k) => `#${k.replace(/\s+/g, '')}`)
+      .join(' ');
     analysis += '\n';
   }
 
   // Get a frame for visual analysis
   analysis += `\n## Visual Preview\n`;
-  const frame = await ctx.transcriptService.extractFrameImage(videoId, Math.floor(info.lengthSeconds / 2));
+  const frame = await ctx.transcriptService.extractFrameImage(
+    videoId,
+    Math.floor(info.lengthSeconds / 2)
+  );
   if (frame) {
     analysis += `Frame extracted at ${Math.floor(info.lengthSeconds / 2)}s - analyze the image below.\n`;
     return {
@@ -224,7 +237,7 @@ handlers.set('detect_music', async (args, ctx) => {
       /lyric\s*video/i,
       /audio\s*only/i,
       /ft\.|feat\./i,
-      /\s-\s.*\s-\s/,  // Artist - Song - Something pattern
+      /\s-\s.*\s-\s/, // Artist - Song - Something pattern
     ],
     keywordPatterns: ['music', 'song', 'album', 'single', 'lyrics', 'audio', 'vevo', 'official'],
     channelPatterns: [/vevo$/i, /music$/i, /records$/i, /entertainment$/i],
@@ -242,8 +255,8 @@ handlers.set('detect_music', async (args, ctx) => {
   }
 
   // Check keywords
-  const keywordMatches = info.keywords.filter(k =>
-    musicIndicators.keywordPatterns.some(p => k.toLowerCase().includes(p))
+  const keywordMatches = info.keywords.filter((k) =>
+    musicIndicators.keywordPatterns.some((p) => k.toLowerCase().includes(p))
   );
   if (keywordMatches.length > 0) {
     musicScore += keywordMatches.length;
@@ -261,7 +274,9 @@ handlers.set('detect_music', async (args, ctx) => {
   // Check for typical music video duration (2-5 minutes)
   if (info.lengthSeconds >= 120 && info.lengthSeconds <= 360) {
     musicScore += 1;
-    reasons.push(`Duration (${Math.floor(info.lengthSeconds / 60)}:${(info.lengthSeconds % 60).toString().padStart(2, '0')}) typical for music`);
+    reasons.push(
+      `Duration (${Math.floor(info.lengthSeconds / 60)}:${(info.lengthSeconds % 60).toString().padStart(2, '0')}) typical for music`
+    );
   }
 
   // Try to parse artist - song from title
@@ -330,10 +345,12 @@ handlers.set('get_video_chapters_free', async (args, ctx) => {
 
   if (chapters.length === 0) {
     return {
-      content: [{
-        type: 'text',
-        text: `No chapters found in "${info.title}".\n\nThe video may not have chapter markers in its description.\n\n*Tip: Use get_video_outline to auto-generate an outline from the transcript.*`,
-      }],
+      content: [
+        {
+          type: 'text',
+          text: `No chapters found in "${info.title}".\n\nThe video may not have chapter markers in its description.\n\n*Tip: Use get_video_outline to auto-generate an outline from the transcript.*`,
+        },
+      ],
     };
   }
 
@@ -387,11 +404,11 @@ handlers.set('deep_analyze_video', async (args, ctx) => {
     response += `| Word Count | ${wordCount.toLocaleString()} |\n`;
     response += `| Segments | ${transcript.segments.length} |\n`;
     response += `| Words/Minute | ${wordsPerMin} |\n`;
-    response += `| Languages | ${(await ctx.transcriptService.listCaptionLanguages(videoId)).map(l => l.code).join(', ')} |\n\n`;
+    response += `| Languages | ${(await ctx.transcriptService.listCaptionLanguages(videoId)).map((l) => l.code).join(', ')} |\n\n`;
 
     // Key points extraction (simplified)
     const importantPhrases = transcript.segments
-      .filter(s => /important|key|remember|basically|the point is|in summary/i.test(s.text))
+      .filter((s) => /important|key|remember|basically|the point is|in summary/i.test(s.text))
       .slice(0, 5);
 
     if (importantPhrases.length > 0) {
@@ -423,7 +440,7 @@ handlers.set('deep_analyze_video', async (args, ctx) => {
     // Auto-detect sections from transcript
     response += `*No chapters in description. Auto-detecting sections...*\n`;
     const sectionMarkers = transcript.segments
-      .filter(s => /now let's|next|moving on|first|finally|in conclusion/i.test(s.text))
+      .filter((s) => /now let's|next|moving on|first|finally|in conclusion/i.test(s.text))
       .slice(0, 5);
     for (const marker of sectionMarkers) {
       response += `• [${formatTime(marker.start)}] ${marker.text.substring(0, 60)}...\n`;
@@ -482,7 +499,8 @@ handlers.set('compare_moments', async (args, ctx) => {
   let seconds = 30;
   if (timestamp.includes(':')) {
     const parts = timestamp.split(':').map(Number);
-    seconds = parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
+    seconds =
+      parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
   } else {
     seconds = parseInt(timestamp, 10);
   }
@@ -490,7 +508,9 @@ handlers.set('compare_moments', async (args, ctx) => {
   let response = `# Moment Comparison at ${timestamp}\n\n`;
   response += `Comparing ${videoIds.length} videos at the same timestamp...\n\n`;
 
-  const contentItems: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [];
+  const contentItems: Array<
+    { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
+  > = [];
   let textResponse = response;
 
   for (let i = 0; i < videoIds.length; i++) {
@@ -570,7 +590,9 @@ handlers.set('video_timeline', async (args, ctx) => {
     // No transcript
   }
 
-  const contentItems: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [];
+  const contentItems: Array<
+    { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
+  > = [];
 
   for (let i = 0; i < intervals; i++) {
     const timestamp = i * intervalSeconds;
@@ -578,7 +600,9 @@ handlers.set('video_timeline', async (args, ctx) => {
 
     // Get transcript at this point
     if (transcript) {
-      const segment = transcript.segments.find(s => s.start >= timestamp && s.start < timestamp + intervalSeconds);
+      const segment = transcript.segments.find(
+        (s) => s.start >= timestamp && s.start < timestamp + intervalSeconds
+      );
       if (segment) {
         response += `> "${segment.text.substring(0, 150)}${segment.text.length > 150 ? '...' : ''}"\n\n`;
       }

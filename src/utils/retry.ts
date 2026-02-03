@@ -4,9 +4,9 @@
  */
 
 export interface RetryOptions {
-  maxRetries?: number;        // Maximum retry attempts
-  initialDelayMs?: number;    // Initial delay before first retry
-  maxDelayMs?: number;        // Maximum delay cap
+  maxRetries?: number; // Maximum retry attempts
+  initialDelayMs?: number; // Initial delay before first retry
+  maxDelayMs?: number; // Maximum delay cap
   backoffMultiplier?: number; // Multiplier for exponential backoff
   retryableErrors?: string[]; // Error messages that should trigger retry
   onRetry?: (error: Error, attempt: number) => void; // Callback on retry
@@ -37,10 +37,7 @@ const DEFAULT_RETRYABLE_PATTERNS = [
 /**
  * Execute a function with retry logic and exponential backoff
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const retryablePatterns = options.retryableErrors ?? DEFAULT_RETRYABLE_PATTERNS;
 
@@ -89,7 +86,7 @@ function isRetryableError(error: Error, patterns: string[]): boolean {
   const message = error.message.toLowerCase();
   const name = error.name.toLowerCase();
 
-  return patterns.some(pattern => {
+  return patterns.some((pattern) => {
     const p = pattern.toLowerCase();
     return message.includes(p) || name.includes(p);
   });
@@ -99,18 +96,14 @@ function isRetryableError(error: Error, patterns: string[]): boolean {
  * Sleep for specified milliseconds
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * Decorator-style retry wrapper for class methods
  */
 export function retryable(options: RetryOptions = {}) {
-  return function (
-    _target: unknown,
-    _propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: unknown[]) {
