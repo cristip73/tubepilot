@@ -1,4 +1,6 @@
 import type { TranscriptSegment, VideoTranscript } from '../types/youtube.js';
+import { transcriptLimiter } from './rate-limiter.js';
+import { withRetry } from '../utils/retry.js';
 
 const ANDROID_USER_AGENT = 'com.google.android.youtube/19.02.39 (Linux; U; Android 11) gzip';
 
@@ -184,7 +186,8 @@ export class TranscriptService {
    * This bypasses restrictions on the web client
    */
   private async fetchInnertubePlayer(videoId: string): Promise<InnertubeResponse> {
-    const response = await fetchWithTimeout(
+    await transcriptLimiter.waitForAllowance('transcript');
+    const response = await withRetry(() => fetchWithTimeout(
       'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
       {
         method: 'POST',
@@ -208,7 +211,7 @@ export class TranscriptService {
           racyCheckOk: true,
         })
       }
-    );
+    ), { maxRetries: 2, initialDelayMs: 500 });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch video data: ${response.status}`);
