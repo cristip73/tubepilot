@@ -152,30 +152,22 @@ export class YouTubeAPIService {
   }
 
   async getChannelByUsername(username: string): Promise<ChannelDetails | null> {
-    const response = await this.youtube.channels.list({
-      part: ['snippet', 'statistics'],
-      forHandle: username.startsWith('@') ? username.slice(1) : username,
+    // Search for channel by handle/username
+    const handle = username.startsWith('@') ? username.slice(1) : username;
+
+    const searchResponse = await this.youtube.search.list({
+      part: ['snippet'],
+      q: handle,
+      type: ['channel'],
+      maxResults: 5,
     });
 
-    const channel = response.data.items?.[0];
-    if (!channel) return null;
+    // Get the first channel result
+    const matchingChannel = searchResponse.data.items?.[0];
+    if (!matchingChannel?.id?.channelId) return null;
 
-    return {
-      id: channel.id || '',
-      title: channel.snippet?.title || '',
-      description: channel.snippet?.description || '',
-      customUrl: channel.snippet?.customUrl || undefined,
-      publishedAt: channel.snippet?.publishedAt || '',
-      thumbnails: {
-        default: channel.snippet?.thumbnails?.default?.url || undefined,
-        medium: channel.snippet?.thumbnails?.medium?.url || undefined,
-        high: channel.snippet?.thumbnails?.high?.url || undefined,
-      },
-      subscriberCount: parseInt(channel.statistics?.subscriberCount || '0', 10),
-      videoCount: parseInt(channel.statistics?.videoCount || '0', 10),
-      viewCount: parseInt(channel.statistics?.viewCount || '0', 10),
-      country: channel.snippet?.country || undefined,
-    };
+    // Get full channel details
+    return this.getChannelDetails(matchingChannel.id.channelId);
   }
 
   async getChannelVideos(

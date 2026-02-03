@@ -280,7 +280,7 @@ export async function createServer() {
           const language = (args?.language as string) || 'en';
           const withTimestamps = (args?.withTimestamps as boolean) || false;
 
-          const cacheKey = CacheService.makeKey('transcript', videoId, language, withTimestamps);
+          const cacheKey = CacheService.makeKey('transcript', videoId, language, withTimestamps ? 'ts' : 'plain');
 
           if (withTimestamps) {
             const transcript = await cache.getOrSet(cacheKey, () =>
