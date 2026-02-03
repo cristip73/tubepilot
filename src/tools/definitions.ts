@@ -14,7 +14,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'get_video_info',
     description:
-      'Get basic information about a YouTube video: title, description, channel, duration, and keywords. Works without API key. Use this for documentaries, music videos, or any video where you need metadata.',
+      'Get basic information about a YouTube video: title, description, channel, duration, and keywords. Works without API key. START HERE for any video analysis - then use get_transcript for content or get_video_frames for visuals. For complete analysis in one call, use deep_analyze_video instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -26,7 +26,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'get_transcript',
     description:
-      'Extract the full transcript/captions from a YouTube video. Use this to understand video content, summarize videos, or answer questions about what was said. Note: Only works for videos with captions enabled.',
+      'Extract the full transcript/captions from a YouTube video. Use this to understand video content, summarize videos, or answer questions about what was said. COMBINE WITH: get_video_frames for visual context, search_in_transcript to find specific moments, or get_video_info for metadata. TIP: Use list_caption_languages first to check available languages. Note: Only works for videos with captions enabled.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -58,7 +58,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'get_video_frames',
     description:
-      'Get visual frames/screenshots from a video at regular intervals. Use this to understand video content visually, especially for videos without captions (gameplay, music, documentaries). Returns image URLs that Claude can analyze with vision.',
+      'Get visual frames/screenshots from a video at regular intervals. Use this to understand video content visually, especially for videos without captions (gameplay, music, documentaries). COMBINE WITH: get_transcript for text+visual analysis. For a specific timestamp, use get_video_moment instead (gets frame + transcript together). For a full timeline view, use video_timeline.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -84,7 +84,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'list_caption_languages',
     description:
-      'List all available caption/subtitle languages for a video. Use this before fetching transcripts to know which languages are available.',
+      'List all available caption/subtitle languages for a video. USE THIS FIRST before get_transcript to check language availability. Shows auto-generated vs manual captions (manual = better quality). Essential for non-English videos.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -110,7 +110,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'get_video_moment',
     description:
-      'Get what\'s happening at a specific moment in a video. Returns BOTH the transcript text being spoken AND a visual storyboard frame. Use this when user asks "what happens at 1:05?" - you get text + image to analyze together.',
+      'COMBO TOOL: Get what\'s happening at a specific moment in a video. Returns BOTH the transcript text AND a visual frame together. Use this when user asks "what happens at 1:05?" For comparing same moment across videos, use compare_moments. For full video overview, use video_timeline.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -138,7 +138,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'extract_code_snippets',
     description:
-      'Extract code snippets, CLI commands, and programming content from a video transcript. Perfect for developer tutorials. Detects: npm/yarn/pip commands, git commands, code patterns, file paths, URLs. Returns timestamped code blocks.',
+      'Extract code snippets, CLI commands, and programming content from a video transcript. Perfect for developer tutorials. Detects: npm/yarn/pip commands, git commands, code patterns, file paths, URLs. COMBINE WITH: find_tech_stack for technologies used, find_github_links for repos, get_tutorial_steps for instructions. For complete dev notes, use convert_to_notes.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -151,7 +151,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'get_tutorial_steps',
     description:
-      'Extract step-by-step instructions from a tutorial video. Identifies numbered steps, "first/then/next" patterns, and instructional segments. Perfect for following along with coding tutorials.',
+      'Extract step-by-step instructions from a tutorial video. Identifies numbered steps, "first/then/next" patterns, and instructional segments. COMBINE WITH: extract_code_snippets for code commands, find_github_links for source code, get_video_frames to see what they\'re doing visually.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -177,7 +177,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'convert_to_notes',
     description:
-      'Convert a video transcript into structured markdown notes. Extracts key points, code snippets, and creates a developer-friendly summary. Ideal for saving tutorial content as documentation.',
+      'POWER TOOL: Convert a video transcript into structured markdown notes. Extracts key points, code snippets, and creates a developer-friendly summary. This combines transcript analysis + code extraction + structure detection. Use this for comprehensive tutorial documentation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -204,7 +204,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'get_video_summary',
     description:
-      'Generate a structured summary of a video with key points, timestamps, and main takeaways. Perfect for quickly understanding video content without watching. Returns bullet points and highlights.',
+      'Generate a structured summary of a video with key points, timestamps, and main takeaways. COMBINE WITH: get_video_outline for structure, answer_from_video for specific questions, video_timeline for visual overview. For complete analysis, use deep_analyze_video instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -223,7 +223,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'answer_from_video',
     description:
-      'Search a video transcript to answer a specific question. Finds relevant segments and returns context needed to answer the question. Use this when user asks "does the video mention X?" or "what does the video say about Y?"',
+      'Search a video transcript to answer a specific question. Finds relevant segments and returns context. Use when user asks "does the video mention X?" COMBINE WITH: get_video_moment to see the visual at that timestamp, create_clip_url to share the exact moment.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -264,7 +264,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'merge_transcripts',
     description:
-      'Merge transcripts from multiple videos into one document. Perfect for playlists, course series, or comparing similar content. Combines 2-10 videos with separators.',
+      'MULTI-VIDEO TOOL: Merge transcripts from 2-10 videos into one document. Perfect for course playlists, tutorial series, or comparing coverage of same topic. COMBINE WITH: compare_moments to see same timestamp across videos, get_playlist (API) to get video IDs from a playlist first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -282,7 +282,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'analyze_short',
     description:
-      'Specialized analysis for YouTube Shorts (videos under 60 seconds). Extracts hook, CTA patterns, words-per-second, hashtags, and provides a visual frame. Perfect for Shorts creators.',
+      'SHORTS-SPECIFIC TOOL: Specialized analysis for YouTube Shorts (<60 sec). Extracts hook timing, CTA patterns, words-per-second, hashtags, + visual frame. Use this instead of deep_analyze_video for Shorts. COMBINE WITH: get_shorts (API) to find Shorts from a channel first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -312,7 +312,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'detect_music',
     description:
-      'Detect if a video is a music video. Analyzes title patterns, keywords, channel name, and duration to determine if content is music. Parses artist and song name when possible.',
+      'Detect if a video is a music video and parse artist/song info. Use this BEFORE get_transcript - music videos often have lyrics as captions. Returns confidence score, artist, song title, and music type (official video, lyric video, live, cover, etc.).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -336,7 +336,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'deep_analyze_video',
     description:
-      'POWER TOOL: Complete video analysis combining info, transcript, chapters, links, and visual frame. Returns everything Claude needs to understand a video in one call. Best for thorough analysis.',
+      'POWER TOOL: Complete video analysis in ONE call. Combines: get_video_info + get_transcript + get_video_chapters_free + extract_links_mentions + visual frame. Returns metadata, transcript stats, chapters, links, and a mid-video frame. USE THIS FIRST for thorough analysis - then use specific tools for deep dives.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -349,7 +349,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'compare_moments',
     description:
-      'Compare the same timestamp across multiple videos. See what different creators show/say at the same point. Returns transcript + visual frames for 2-5 videos side by side.',
+      'MULTI-VIDEO TOOL: Compare the same timestamp across 2-5 videos. See what different creators show/say at the same moment. Returns transcript + visual frames side by side. Great for comparing tutorials, reactions, or coverage of same event.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -366,7 +366,7 @@ export const CORE_TOOLS: Tool[] = [
   {
     name: 'video_timeline',
     description:
-      'Generate a visual timeline of a video with frames and transcript excerpts at regular intervals. Perfect for getting an overview of long videos. Returns multiple images + text.',
+      'VISUAL OVERVIEW TOOL: Generate a timeline with frames + transcript at regular intervals. Perfect for long videos, lectures, documentaries. Returns multiple images with text context. Use instead of calling get_video_frames + get_transcript separately.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -383,7 +383,7 @@ export const API_TOOLS: Tool[] = [
   {
     name: 'search_videos',
     description:
-      'Search YouTube for videos, channels, or playlists. Returns titles, channels, and URLs. (Requires API key)',
+      'Search YouTube for videos, channels, or playlists. Returns titles, channels, and URLs. WORKFLOW: Search → compare_videos for stats → deep_analyze_video for content → merge_transcripts for combined analysis. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -441,7 +441,7 @@ export const API_TOOLS: Tool[] = [
   },
   {
     name: 'get_channel_videos',
-    description: 'Get a list of videos from a YouTube channel. (Requires API key)',
+    description: 'Get a list of videos from a YouTube channel. COMBINE WITH: get_video_metadata_bulk for detailed stats, merge_transcripts for combined content, compare_videos for performance comparison. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -458,7 +458,7 @@ export const API_TOOLS: Tool[] = [
   },
   {
     name: 'get_playlist',
-    description: 'Get details and videos from a YouTube playlist. (Requires API key)',
+    description: 'Get details and videos from a YouTube playlist. COMBINE WITH: merge_transcripts to get all transcripts, get_video_metadata_bulk for stats on all videos, get_playlist_summary for full analysis. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -470,7 +470,7 @@ export const API_TOOLS: Tool[] = [
   },
   {
     name: 'get_video_comments',
-    description: 'Get comments from a YouTube video. (Requires API key)',
+    description: 'Get comments from a YouTube video. COMBINE WITH: analyze_comments_sentiment for sentiment analysis, get_comment_replies for threaded discussions. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -538,7 +538,7 @@ export const API_TOOLS: Tool[] = [
   {
     name: 'compare_videos',
     description:
-      'Compare stats of multiple videos side by side. Great for analyzing performance. (Requires API key)',
+      'Compare stats (views, likes, comments) of 2-10 videos side by side. Great for performance analysis. COMBINE WITH: compare_moments for content comparison, merge_transcripts for text comparison. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -554,7 +554,7 @@ export const API_TOOLS: Tool[] = [
   {
     name: 'analyze_channel',
     description:
-      'Get detailed channel analytics including posting frequency, average views, and content breakdown. (Requires API key)',
+      'Get detailed channel analytics including posting frequency, average views, and content breakdown. COMBINE WITH: compare_channels for competitive analysis, get_channel_videos + deep_analyze_video for top video deep dive. (Requires API key)',
     inputSchema: {
       type: 'object',
       properties: {
