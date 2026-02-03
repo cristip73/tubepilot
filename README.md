@@ -2,7 +2,7 @@
 
 > Your AI Co-Pilot for YouTube
 
-TubePilot is an MCP server that lets Claude understand YouTube. Extract transcripts, analyze channels, compare videos, and more - **no API key required** for core features.
+TubePilot is an MCP server that lets Claude fetch and analyze YouTube data. Get video info, extract transcripts, analyze channels, compare videos, and more.
 
 ## Installation
 
@@ -19,18 +19,18 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 }
 ```
 
-That's it! No API key needed for transcript features.
+**No API key required** for basic video info and transcripts!
 
 ## What You Can Do
 
-**Summarize any video:**
+**Get info about any video (no API key):**
 ```
-"Summarize this video: https://youtube.com/watch?v=dQw4w9WgXcQ"
+"What is this video about? https://youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-**Ask questions about video content:**
+**Summarize video content:**
 ```
-"What does this video say about machine learning?"
+"Summarize this video for me"
 ```
 
 **Find specific moments:**
@@ -38,51 +38,57 @@ That's it! No API key needed for transcript features.
 "When do they talk about pricing in this video?"
 ```
 
-**Analyze a channel:**
+**Analyze a channel (requires API key):**
 ```
 "Analyze @mkbhd's channel - posting frequency, avg views, top videos"
 ```
 
-**Compare videos:**
+**Compare videos (requires API key):**
 ```
 "Compare these two videos and tell me which performed better"
 ```
 
-**Export a playlist:**
-```
-"Export my Watch Later playlist to JSON"
-```
-
 ## Tools
 
-### Core Tools (No API Key)
+### Free Tools (No API Key)
 
 | Tool | Description |
 |------|-------------|
-| `get_transcript` | Extract full video transcript with optional timestamps |
-| `search_in_transcript` | Find specific words/moments in a video |
+| `get_video_info` | Get video title, description, channel, duration, keywords |
+| `get_transcript` | Extract full video transcript (requires captions enabled) |
+| `search_in_transcript` | Find specific words/moments by timestamp |
 
 ### Extended Tools (Requires API Key)
 
 | Tool | Description |
 |------|-------------|
 | `search_videos` | Search YouTube for videos, channels, playlists |
-| `get_video_details` | Full video metadata, stats, tags, duration |
-| `get_video_chapters` | Extract chapter markers from video |
-| `get_video_comments` | Fetch video comments |
-| `get_channel_info` | Channel stats and description |
+| `get_video_details` | Full stats: views, likes, comments, tags |
+| `get_video_chapters` | Extract chapter markers from description |
+| `get_video_comments` | Fetch top/recent comments |
+| `get_channel_info` | Channel subscribers, video count, description |
 | `get_channel_videos` | List videos from a channel |
 | `analyze_channel` | Deep analytics: posting frequency, avg views, top content |
 | `get_playlist` | Get playlist contents |
 | `export_playlist` | Export playlist to JSON format |
 | `get_trending` | Trending videos by region/category |
-| `get_categories` | List YouTube categories (for trending filter) |
+| `get_categories` | List YouTube categories |
 | `get_related_videos` | Find similar videos |
-| `compare_videos` | Side-by-side stats comparison |
+| `compare_videos` | Side-by-side stats comparison (2-10 videos) |
+
+## Limitations
+
+**TubePilot is a data reader, not a downloader or uploader:**
+
+- ❌ Cannot download videos or audio
+- ❌ Cannot upload, like, comment, or subscribe
+- ❌ Cannot access private videos or watch history
+- ❌ Cannot get transcripts for videos without captions
+- ❌ Cannot access monetization/revenue data
 
 ## Optional: Enable All Features
 
-For search, metadata, and analytics features, add a YouTube API key:
+For search, detailed stats, and analytics, add a YouTube API key:
 
 ```json
 {
@@ -107,20 +113,11 @@ For search, metadata, and analytics features, add a YouTube API key:
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development
-npm run dev
-
-# Build
-npm run build
-
-# Test
-npm test
-
-# Format code
-npm run format
+npm install      # Install dependencies
+npm run dev      # Run in development
+npm run build    # Build for production
+npm test         # Run tests (82 tests)
+npm run format   # Format code
 ```
 
 ## Contributing

@@ -48,6 +48,34 @@ export async function handleToolCall(
 
   // === CORE TOOLS (no API key needed) ===
 
+  if (name === 'get_video_info') {
+    const videoId = extractVideoId(args?.videoId as string);
+    const cacheKey = CacheService.makeKey('videoinfo', videoId);
+
+    const info = await cache.getOrSet(cacheKey, () => transcriptService.getVideoInfo(videoId));
+
+    // Format duration
+    const hours = Math.floor(info.lengthSeconds / 3600);
+    const minutes = Math.floor((info.lengthSeconds % 3600) / 60);
+    const seconds = info.lengthSeconds % 60;
+    const duration =
+      hours > 0
+        ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        : `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    const response = `**${info.title}**
+Channel: ${info.author}
+Duration: ${duration}
+URL: https://youtube.com/watch?v=${videoId}
+
+**Description:**
+${info.description.substring(0, 1000)}${info.description.length > 1000 ? '...' : ''}
+
+${info.keywords.length > 0 ? `**Keywords:** ${info.keywords.slice(0, 15).join(', ')}` : ''}`;
+
+    return { content: [{ type: 'text', text: response.trim() }] };
+  }
+
   if (name === 'get_transcript') {
     const videoId = extractVideoId(args?.videoId as string);
     const language = (args?.language as string) || 'en';

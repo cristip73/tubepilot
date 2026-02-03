@@ -11,6 +11,7 @@ const mockTranscriptService = {
   getTranscript: vi.fn(),
   getTimestampedTranscript: vi.fn(),
   searchTranscript: vi.fn(),
+  getVideoInfo: vi.fn(),
 };
 
 // Mock YouTube API service
@@ -39,6 +40,46 @@ describe('Integration Tests - Real User Scenarios', () => {
       transcriptService: mockTranscriptService as any,
       cache: new CacheService(300),
     };
+  });
+
+  describe('Scenario: User wants basic video info (no API key)', () => {
+    it('returns video metadata without needing API key', async () => {
+      mockTranscriptService.getVideoInfo.mockResolvedValue({
+        title: 'Planet Earth Documentary',
+        description: 'A stunning documentary about our planet...',
+        author: 'BBC Earth',
+        lengthSeconds: 5400, // 1:30:00
+        keywords: ['documentary', 'nature', 'earth', 'wildlife'],
+      });
+
+      const result = await handleToolCall('get_video_info', { videoId: 'dQw4w9WgXcQ' }, ctx);
+
+      expect(result.content[0].text).toContain('Planet Earth Documentary');
+      expect(result.content[0].text).toContain('BBC Earth');
+      expect(result.content[0].text).toContain('1:30:00'); // formatted duration
+      expect(result.content[0].text).toContain('documentary'); // keyword
+    });
+
+    it('works even without API key configured', async () => {
+      const noApiCtx: ToolContext = {
+        youtubeApi: null, // No API key!
+        transcriptService: mockTranscriptService as any,
+        cache: new CacheService(300),
+      };
+
+      mockTranscriptService.getVideoInfo.mockResolvedValue({
+        title: 'Music Video',
+        description: 'Official music video',
+        author: 'Artist Name',
+        lengthSeconds: 240,
+        keywords: ['music', 'official'],
+      });
+
+      const result = await handleToolCall('get_video_info', { videoId: 'dQw4w9WgXcQ' }, noApiCtx);
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('Music Video');
+    });
   });
 
   describe('Scenario: User wants to summarize a video', () => {

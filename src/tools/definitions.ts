@@ -1,11 +1,23 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
-// Core tools - work WITHOUT API key (transcript-based)
+// Core tools - work WITHOUT API key
 export const CORE_TOOLS: Tool[] = [
+  {
+    name: 'get_video_info',
+    description:
+      'Get basic information about a YouTube video: title, description, channel, duration, and keywords. Works without API key. Use this for documentaries, music videos, or any video where you need metadata.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        videoId: { type: 'string', description: 'YouTube video ID or URL' },
+      },
+      required: ['videoId'],
+    },
+  },
   {
     name: 'get_transcript',
     description:
-      'Extract the full transcript/captions from a YouTube video. Use this to understand video content, summarize videos, or answer questions about what was said.',
+      'Extract the full transcript/captions from a YouTube video. Use this to understand video content, summarize videos, or answer questions about what was said. Note: Only works for videos with captions enabled.',
     inputSchema: {
       type: 'object',
       properties: {
