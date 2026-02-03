@@ -18,6 +18,7 @@ const mockTranscriptService = {
   getVideoMoment: vi.fn(),
   getTranscriptAtTimestamp: vi.fn(),
   getStoryboardFrame: vi.fn(),
+  extractFrameImage: vi.fn(),
 };
 
 // Mock YouTube API service
@@ -457,6 +458,15 @@ describe('Integration Tests - Real User Scenarios', () => {
         hasStoryboard: true,
       });
 
+      // Mock frame extraction returning an image
+      mockTranscriptService.extractFrameImage.mockResolvedValue({
+        imageBase64: 'iVBORw0KGgoAAAANS',
+        mimeType: 'image/png',
+        timestamp: 65,
+        frameWidth: 160,
+        frameHeight: 90,
+      });
+
       const result = await handleToolCall(
         'get_video_moment',
         { videoId: 'dQw4w9WgXcQ', timestamp: '1:05' },
@@ -466,8 +476,10 @@ describe('Integration Tests - Real User Scenarios', () => {
       expect(result.content[0].text).toContain('Tutorial Video');
       expect(result.content[0].text).toContain('1:05');
       expect(result.content[0].text).toContain('Now click on the button');
-      expect(result.content[0].text).toContain('storyboard');
-      expect(result.content[0].text).toContain('Row 3'); // 0-indexed + 1
+      expect(result.content[0].text).toContain('Extracted frame');
+      // Should have image content as second item
+      expect(result.content.length).toBe(2);
+      expect(result.content[1].type).toBe('image');
     });
 
     it('handles videos without transcript', async () => {
@@ -485,6 +497,9 @@ describe('Integration Tests - Real User Scenarios', () => {
         hasStoryboard: false,
       });
 
+      // Mock no frame available
+      mockTranscriptService.extractFrameImage.mockResolvedValue(null);
+
       const result = await handleToolCall(
         'get_video_moment',
         { videoId: 'dQw4w9WgXcQ', timestamp: '0:30' },
@@ -493,6 +508,8 @@ describe('Integration Tests - Real User Scenarios', () => {
 
       expect(result.content[0].text).toContain('Not available');
       expect(result.content[0].text).toContain('Thumbnail');
+      // Should only have text content when no image
+      expect(result.content.length).toBe(1);
     });
   });
 

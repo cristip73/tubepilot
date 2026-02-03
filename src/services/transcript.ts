@@ -1,6 +1,7 @@
 import type { TranscriptSegment, VideoTranscript } from '../types/youtube.js';
 import { transcriptLimiter } from './rate-limiter.js';
 import { withRetry } from '../utils/retry.js';
+import sharp from 'sharp';
 
 const ANDROID_USER_AGENT = 'com.google.android.youtube/19.02.39 (Linux; U; Android 11) gzip';
 
@@ -457,33 +458,42 @@ export class TranscriptService {
     }
 
     try {
-      // Parse storyboard spec - format varies but typically:
-      // baseUrl|width|height|count|columns|rows|interval|...#level2|...
-      const levels = storyboardSpec.split('#');
+      // Storyboard spec format:
+      // baseUrl|level0Params|level1Params|level2Params
+      // Where levelParams = width#height#count#columns#rows#interval#namePattern#sigh
+      // And baseUrl has $L (level), $N (sheet name/index) placeholders
+      const parts = storyboardSpec.split('|');
+      if (parts.length < 2) return null;
 
-      // Use the highest quality level (last one with good resolution)
-      // Try to find a level with reasonable resolution
-      let bestLevel = levels[0];
-      for (const level of levels) {
-        const parts = level.split('|');
-        if (parts.length >= 7) {
-          const width = parseInt(parts[1], 10);
-          if (width >= 80) { // Reasonable quality
-            bestLevel = level;
+      const baseUrl = parts[0];
+
+      // Find the highest quality level (usually the last one)
+      // Skip parts[0] which is the baseUrl
+      let bestLevelIndex = 0;
+      let bestWidth = 0;
+
+      for (let i = 1; i < parts.length; i++) {
+        const levelParams = parts[i].split('#');
+        if (levelParams.length >= 6) {
+          const width = parseInt(levelParams[0], 10);
+          if (width > bestWidth) {
+            bestWidth = width;
+            bestLevelIndex = i - 1; // Level index is 0-based
           }
         }
       }
 
-      const parts = bestLevel.split('|');
-      if (parts.length < 7) return null;
+      const levelParams = parts[bestLevelIndex + 1].split('#');
+      if (levelParams.length < 6) return null;
 
-      const baseUrl = parts[0];
-      const frameWidth = parseInt(parts[1], 10) || 120;
-      const frameHeight = parseInt(parts[2], 10) || 68;
-      const frameCount = parseInt(parts[3], 10) || 100;
-      const columns = parseInt(parts[4], 10) || 10;
-      const rows = parseInt(parts[5], 10) || 10;
-      const intervalMs = parseInt(parts[6], 10) || 2000;
+      const frameWidth = parseInt(levelParams[0], 10) || 120;
+      const frameHeight = parseInt(levelParams[1], 10) || 68;
+      const frameCount = parseInt(levelParams[2], 10) || 100;
+      const columns = parseInt(levelParams[3], 10) || 10;
+      const rows = parseInt(levelParams[4], 10) || 10;
+      const intervalMs = parseInt(levelParams[5], 10) || 2000;
+      const namePattern = levelParams[6] || 'M$M';
+      const sigh = levelParams[7] || '';
 
       if (intervalMs <= 0) return null;
 
@@ -495,10 +505,15 @@ export class TranscriptService {
       const row = Math.floor(frameInSheet / columns);
       const col = frameInSheet % columns;
 
-      // Build sprite URL
-      let spriteUrl = baseUrl.replace('$M', sheetIndex.toString());
-      // Some URLs need $N replaced too
-      spriteUrl = spriteUrl.replace('$N', 'default');
+      // Build sprite URL by replacing placeholders and adding sigh for auth
+      let spriteUrl = baseUrl
+        .replace('$L', bestLevelIndex.toString())
+        .replace('$N', namePattern.replace('$M', sheetIndex.toString()));
+
+      // Add sigh parameter for authentication
+      if (sigh) {
+        spriteUrl += '&sigh=' + sigh;
+      }
 
       return {
         spriteUrl,
@@ -512,6 +527,67 @@ export class TranscriptService {
         isApproximate: false,
       };
     } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Extract actual frame image from storyboard at a specific timestamp
+   * Downloads sprite sheet, crops the exact frame, returns as base64
+   * This can be fed directly to Claude's vision for analysis
+   */
+  async extractFrameImage(
+    videoId: string,
+    timestampSeconds: number
+  ): Promise<{
+    imageBase64: string;
+    mimeType: string;
+    timestamp: number;
+    frameWidth: number;
+    frameHeight: number;
+  } | null> {
+    const frameInfo = await this.getStoryboardFrame(videoId, timestampSeconds);
+    if (!frameInfo) {
+      return null;
+    }
+
+    try {
+      // Download the sprite sheet
+      const response = await fetchWithTimeout(frameInfo.spriteUrl, {
+        headers: { 'User-Agent': ANDROID_USER_AGENT },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Calculate crop coordinates
+      const left = frameInfo.col * frameInfo.frameWidth;
+      const top = frameInfo.row * frameInfo.frameHeight;
+
+      // Crop the specific frame from the sprite sheet
+      const croppedImage = await sharp(buffer)
+        .extract({
+          left,
+          top,
+          width: frameInfo.frameWidth,
+          height: frameInfo.frameHeight,
+        })
+        .png()
+        .toBuffer();
+
+      return {
+        imageBase64: croppedImage.toString('base64'),
+        mimeType: 'image/png',
+        timestamp: timestampSeconds,
+        frameWidth: frameInfo.frameWidth,
+        frameHeight: frameInfo.frameHeight,
+      };
+    } catch (error) {
+      console.error('[TranscriptService] Failed to extract frame:', error);
       return null;
     }
   }

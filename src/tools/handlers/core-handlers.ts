@@ -2,7 +2,7 @@
  * Core handlers - Basic video info and transcript tools
  * These work WITHOUT an API key
  */
-import { HandlerModule, ToolHandler, ToolContext, ToolResult, truncateResponse, formatTime, parseTimestamp, MAX_TRANSCRIPT_LENGTH } from '../types.js';
+import { HandlerModule, ToolHandler, ToolContext, ToolResult, ContentItem, truncateResponse, formatTime, parseTimestamp, MAX_TRANSCRIPT_LENGTH } from '../types.js';
 import { extractVideoId } from '../../utils/formatting.js';
 import { CacheService } from '../../services/cache.js';
 
@@ -230,6 +230,9 @@ handlers.set('get_video_moment', async (args, ctx) => {
 
   const moment = await ctx.transcriptService.getVideoMoment(videoId, seconds);
 
+  // Try to extract actual frame image for Claude's vision
+  const frameImage = await ctx.transcriptService.extractFrameImage(videoId, seconds);
+
   let response = `**${moment.videoTitle}** - Moment at ${moment.formattedTime}\n\n`;
 
   if (moment.hasTranscript) {
@@ -246,21 +249,28 @@ handlers.set('get_video_moment', async (args, ctx) => {
     response += `**Transcript:** Not available for this video (no captions)\n\n`;
   }
 
-  response += `**Visual Frame:**\n`;
-  if (moment.hasStoryboard && moment.visual.spriteUrl) {
-    response += `Storyboard sprite: ${moment.visual.spriteUrl}\n`;
-    if (moment.visual.framePosition) {
-      const pos = moment.visual.framePosition;
-      response += `Frame position: Row ${pos.row + 1}/${pos.rows}, Column ${pos.col + 1}/${pos.columns}\n`;
-      response += `(This is a sprite sheet - look at the frame at that position)\n`;
-    }
+  // Build content array with text and optionally the frame image
+  const content: ContentItem[] = [];
+
+  if (frameImage) {
+    response += `**Visual Frame:** Extracted frame at ${moment.formattedTime} (${frameImage.frameWidth}x${frameImage.frameHeight}px)\n`;
+    response += `*Analyze the image below to see what's happening visually.*`;
+
+    // Add text first, then image
+    content.push({ type: 'text', text: response });
+    content.push({
+      type: 'image',
+      data: frameImage.imageBase64,
+      mimeType: frameImage.mimeType,
+    });
   } else {
-    response += `Thumbnail (not timestamp-specific): ${moment.visual.thumbnailUrl}\n`;
+    response += `**Visual Frame:**\n`;
+    response += `Thumbnail (storyboard not available): ${moment.visual.thumbnailUrl}\n`;
+    response += `\n**Analysis tip:** Combine the transcript text and thumbnail to understand this moment.`;
+    content.push({ type: 'text', text: response });
   }
 
-  response += `\n**Analysis tip:** Combine the transcript text and visual to understand this moment.`;
-
-  return { content: [{ type: 'text', text: response }] };
+  return { content };
 });
 
 // ============================================

@@ -12,12 +12,19 @@ export interface ToolContext {
 }
 
 /**
+ * Content types supported by MCP
+ */
+export type TextContent = { type: 'text'; text: string };
+export type ImageContent = { type: 'image'; data: string; mimeType: string };
+export type ContentItem = TextContent | ImageContent;
+
+/**
  * Standard tool result format
  * Index signature allows MCP SDK compatibility
  */
 export interface ToolResult {
   [key: string]: unknown;
-  content: Array<{ type: string; text: string }>;
+  content: ContentItem[];
   isError?: boolean;
 }
 
