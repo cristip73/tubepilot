@@ -3,7 +3,8 @@ import { transcriptLimiter } from './rate-limiter.js';
 import { withRetry } from '../utils/retry.js';
 import sharp from 'sharp';
 
-const ANDROID_USER_AGENT = 'com.google.android.youtube/19.02.39 (Linux; U; Android 11) gzip';
+const WEB_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const ANDROID_USER_AGENT = 'com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip';
 
 // Security: Request timeout to prevent hanging
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
@@ -187,43 +188,91 @@ export class TranscriptService {
   }
 
   /**
-   * Fetch player data using YouTube's innertube API with Android client
-   * This bypasses restrictions on the web client
+   * Extract INNERTUBE_API_KEY from video page HTML.
+   */
+  private async fetchApiKey(videoId: string): Promise<string> {
+    const response = await fetchWithTimeout(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        'User-Agent': WEB_USER_AGENT,
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch video page: ${response.status}`);
+    }
+    const html = await response.text();
+    const match = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/);
+    return match ? match[1] : 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
+  }
+
+  /**
+   * Fetch player data using ANDROID client with INNERTUBE_API_KEY.
+   * Falls back to web page scraping if ANDROID fails.
    */
   private async fetchInnertubePlayer(videoId: string): Promise<InnertubeResponse> {
     await transcriptLimiter.waitForAllowance('transcript');
-    const response = await withRetry(
-      () =>
-        fetchWithTimeout('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': ANDROID_USER_AGENT,
-            'X-YouTube-Client-Name': '3',
-            'X-YouTube-Client-Version': '19.02.39',
-          },
-          body: JSON.stringify({
-            videoId,
-            context: {
-              client: {
-                clientName: 'ANDROID',
-                clientVersion: '19.02.39',
-                hl: 'en',
-                gl: 'US',
-              },
+
+    // Strategy 1: ANDROID client with API key (reliable for captions in 2026)
+    try {
+      const apiKey = await this.fetchApiKey(videoId);
+      const response = await withRetry(
+        () =>
+          fetchWithTimeout(`https://www.youtube.com/youtubei/v1/player?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': ANDROID_USER_AGENT,
             },
-            contentCheckOk: true,
-            racyCheckOk: true,
+            body: JSON.stringify({
+              context: {
+                client: {
+                  clientName: 'ANDROID',
+                  clientVersion: '20.10.38',
+                },
+              },
+              videoId,
+            }),
           }),
+        { maxRetries: 2, initialDelayMs: 500 }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.playabilityStatus?.status === 'OK' || data.videoDetails) {
+          return data;
+        }
+      }
+    } catch {
+      // Fall through to web scraping
+    }
+
+    // Strategy 2: Scrape ytInitialPlayerResponse from video page
+    const pageResponse = await withRetry(
+      () =>
+        fetchWithTimeout(`https://www.youtube.com/watch?v=${videoId}`, {
+          headers: {
+            'User-Agent': WEB_USER_AGENT,
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cookie': 'CONSENT=YES+1',
+          },
         }),
       { maxRetries: 2, initialDelayMs: 500 }
     );
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch video data: ${response.status}`);
+    if (!pageResponse.ok) {
+      throw new Error(`Failed to fetch video data: ${pageResponse.status}`);
     }
 
-    return response.json();
+    const html = await pageResponse.text();
+    const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;/);
+    if (match) {
+      const data = JSON.parse(match[1]);
+      if (data.videoDetails || data.captions) {
+        return data;
+      }
+    }
+
+    throw new Error('Failed to fetch video data from any source');
   }
 
   /**
@@ -232,7 +281,7 @@ export class TranscriptService {
   private async fetchTranscriptXml(url: string): Promise<TranscriptSegment[]> {
     const response = await fetchWithTimeout(url, {
       headers: {
-        'User-Agent': ANDROID_USER_AGENT,
+        'User-Agent': WEB_USER_AGENT,
       },
     });
 
@@ -559,7 +608,7 @@ export class TranscriptService {
     try {
       // Download the sprite sheet
       const response = await fetchWithTimeout(frameInfo.spriteUrl, {
-        headers: { 'User-Agent': ANDROID_USER_AGENT },
+        headers: { 'User-Agent': WEB_USER_AGENT },
       });
 
       if (!response.ok) {
